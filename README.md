@@ -4,7 +4,7 @@
 
 ## Installation & Start
 
-### Option 1: Docker (recommended)
+### Docker
 
 1. Clone or download the repository.
 2. Make sure [Docker](https://www.docker.com/) is installed.
@@ -35,27 +35,12 @@
 - **PostgreSQL + PostGIS** - Port 5433 (external), stores spatial STAC data
 - **pgAdmin** - Port 5050 (web interface for database management)
 
-### Option 2: Node.js (without Docker)
+## API Endpoints
 
-1. Clone or download the repository.
-2. Navigate to the `api` directory:
-  ```bash
-  cd api
-  ```
-3. Install dependencies:
-  ```bash
-  npm install
-  ```
-4. Start the application:
-  - **Production mode:**
-    ```bash
-    npm start
-    ```
-  - **Development mode (with hot-reload):**
-    ```bash
-    npm run dev
-    ```
+### Collections
 
-**Additional notes:**
-- The application is accessible at: [http://localhost:3000](http://localhost:3000)
-- **Note:** This mode requires a separate PostgreSQL database. See [Database Access Guide](docs/database/database-access.md) for configuration
+#### GET `/collections`
+Returns all STAC collections from the database.
+
+**Try it:**
+- [http://localhost:4000/collections](http://localhost:4000/collections)
