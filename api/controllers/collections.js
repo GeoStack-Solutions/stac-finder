@@ -1,4 +1,10 @@
-const db = require('../db');
+// TEMPORARY: Set to false when database is ready, then delete these 4 lines
+const USE_MOCK = true;
+const mockDb = require('../db/mockData');
+const realDb = require('../db');
+const db = USE_MOCK ? mockDb : realDb; 
+// After deletion add: const db = require('../db');
+
 const { parseSortby } = require('../utils/sorting');
 const { parsePaginationParams, createPaginationLinks } = require('../utils/pagination');
 
