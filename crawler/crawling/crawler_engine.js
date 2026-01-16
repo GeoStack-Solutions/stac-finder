@@ -1,22 +1,25 @@
+import pLimit from "p-limit";
+
 //imports 
 import {
-    initializeQueue,
     getNextUrlFromDB,
     hasNextUrl,
-    removeFromQueue,
+    removeFromQueueById,
     addToQueue
 } from "./queue_manager.js";
 
-import { loadUncrawledSources } from "./source_manager.js";
-import { handleSTACObject, crawlStacApi } from "./crawler_functions.js";
+import { loadUncrawledSources, isInSources } from "./source_manager.js";
+import { handleSTACObject } from "./crawler_functions.js";
 import { validateStacObject } from "../parsing/json_validator.js";
 import { logger } from "./src/config/logger.js"
 import { getSTACIndexData } from "../data_management/stac_index_client.js";
-import { isInSources } from "./source_manager.js";
 
 const CRAWL_DELAY_MS = 100; // Polite delay
 const MAX_RETRIES = 3;       // Max attempts
 const RETRY_DELAY_MS = 2000; // Base backoff time
+
+const CONCURRENCY_LIMIT = 5;
+const limit = pLimit(CONCURRENCY_LIMIT);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -48,6 +51,77 @@ async function fetchWithRetry(url, maxRetries = MAX_RETRIES) {
     }
 }
 
+async function processUrl(entry, urlData) {
+    const url = entry.url_of_source;
+    const parentUrl = entry.parent_url ?? null;
+
+    try {
+        logger.info(`Crawling: ${url}`);
+
+        const stacObject = await fetchWithRetry(url);
+
+        if (!validateStacObject(stacObject).valid) {
+            logger.warn(`Invalid STAC object: ${url}`);
+            return;
+        }
+
+        const childData = await handleSTACObject(stacObject, url, parentUrl);
+
+        for (const child of childData) {
+            urlData.titles.push(child.title);
+            urlData.urls.push(child.url);
+            urlData.parentUrls.push(url);
+        }
+
+    } catch (err) {
+        logger.warn(`Failed crawling ${url}: ${err.message}`);
+    }
+}
+
+async function runParallelLoop() {
+
+    const urlData = {
+        titles: [],
+        urls: [],
+        parentUrls: []
+    };
+
+    while (await hasNextUrl()) {
+
+        const batch = [];
+
+        while (batch.length < CONCURRENCY_LIMIT && await hasNextUrl()) {
+            const entry = await getNextUrlFromDB();
+            if (!entry) break;
+
+            batch.push(
+                limit(async () => {
+                    await processUrl(entry, urlData);
+                    await removeFromQueueById(entry.id);
+                })
+            );
+        }
+
+        if (batch.length === 0) break;
+
+        await Promise.all(batch);
+
+        if (urlData.urls.length > 0) {
+            await addToQueue(
+                urlData.titles,
+                urlData.urls,
+                urlData.parentUrls
+            );
+
+            urlData.titles = [];
+            urlData.urls = [];
+            urlData.parentUrls = [];
+        }
+
+        await sleep(CRAWL_DELAY_MS);
+    }
+}
+
 /**
 * Main crawler loop:
 * - Loads uncrawled sources from DB
@@ -59,183 +133,40 @@ async function fetchWithRetry(url, maxRetries = MAX_RETRIES) {
 * @returns {Promise<void>} Completes when all APIs are done and the static queue is empty
 */
 export async function startCrawler() {
-
     logger.info("Crawler started");
- 
-    // we now load sources manually to check their type.
-    const sources = await loadUncrawledSources(); //
-    
-    logger.info(`Found ${sources.length} sources to process.`);
 
-    for (const source of sources) {
-        if (source.type === 'API') {
-            // Process directly, no queue needed for the collections list
-            await crawlStacApi(source); //
-        } else {
-            // Add to queue to start the recursive crawling loop
-            await addToQueue(source.title, source.url, null); //
-        }
-    }
-
-    // Load URLs from STAC Index (fail-safe)
+    // 1️⃣ STAC Index EINMAL laden
     try {
+        const indexData = await getSTACIndexData();
 
-        //get the data from the STAC Index Database
-        const STACIndexData = await getSTACIndexData();
+        const titles = [];
+        const urls = [];
+        const parents = [];
 
-        //initialize arrays to store data
-        let titles = []
-        let urls = []
-
-        //bring the data in the format needed to add it to the queue
-        for (let data of STACIndexData) {
-
-            //validate data
-            if (validateQueueEntry(data.title, data.url)) {
-
-                //add the data to the array
-                titles.push(data.title)
-                urls.push(data.url)
-            }
+        for (const data of indexData) {
+            titles.push(data.title);
+            urls.push(data.url);
+            parents.push(null);
         }
 
-        //make sure that the length of the arrays is equal
-        //otherwise the data could get mixed up
-        if (titles.length == urls.length) {
-
-            //add the data to the queue
-            addToQueue(titles, urls)
-
-        } else {
-            logger.error(`There are ${titles.length} titles but ${urls.length} urls you want to add to the queue.`)
-            throw err
-        }
+        const added = await addToQueue(titles, urls, parents);
+        logger.info(`Added ${added} URLs from STAC Index`);
 
     } catch (err) {
-        logger.error("Could not load STAC Index data, starting with existing queue only.");
+        logger.warn("STAC Index unavailable, continuing with existing queue");
     }
 
-    //Store the data to upload it later to the queue 
-    const urlData = {
-        titles : [],
-        urls : [],
-        parentUrls : []
-    }
-
-    // Continue crawling until no URLs remain in queue
-    while (await hasNextUrl()) {
-
-        // Fetch next URL entry from queue table
-            const entry = await getNextUrlFromDB();
-            const url = entry.url_of_source;
-            const parentUrl = entry.parent_url ?? null;
-
-        try {
-            //get the json from the url
-            const res = await fetch(url)
-            const STACObject = await res.json()
-
-            logger.info(`Crawling: ${url}`);
-            
-            // Only proceed if valid JSON was retrieved
-            if (validateStacObject(STACObject).valid) {
-
-                //for Catalogs: get the child data and save the catalog data in the sources db
-                //for Collections: get the child data, save the collection data in the collections and the sources db
-                const childData = await handleSTACObject(STACObject, url, parentUrl)
-
-                for(let child of childData) {
-
-                    //validate child data
-                    if(validateQueueEntry(child.title, child.url, parentUrl)) {
-
-                        //add the child data to the urlData
-                        urlData.titles.push(child.title)
-                        urlData.urls.push(child.url)
-                        urlData.parentUrls.push(parentUrl)
-                    }
-                }
-
-                } else {
-                    logger.warn("Warning: Invalid STAC object")
-                }
-            
-        } catch(err) {
-            logger.warn(`Warning: Did not crawled the following url: ${url} because of the following error: ${err}`)
-        }
-
-        if (urlData.urls.length != urlData.titles.length || urlData.urls.length != urlData.parentUrls.length) {
-            logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls and 
-                ${urlData.parentUrls.length} parent urls you want to add to the queue.`)
-        }
-        if (urlData.urls.length >= 1000 || !await hasNextUrl()) {
-            //add the data to the queue
-            addToQueue(urlData.titles, urlData.urls, urlData.parentUrls)
-
-            //reset the urlData
-            urlData.titles = []
-            urlData.urls = []
-            urlData.parentUrls = []
-        }
-        
-        // Remove processed URL from queue to avoid re-processing
-        await removeFromQueue(url);
-    }
+    // 2️⃣ Parallel crawlen
+    await runParallelLoop();
 
     logger.info("Crawling finished");
 }
 
 /**
-* Continue crawler-loop:
-* continues crawling if the crawling process stopped because of a network failiure
-* - repeatedly fetches the URLs that are already in the queue
-* - adds new URLs into queue
-* - removes processed URL
-*
-* This function implements the core recursive traversal described in the Pflichtenheft.
-*
-* @async
-* @function continueCrawlingProcess
-* @returns {Promise<void>} Completes when no URLs remain in the queue
-*/
+ * Resume crawling using existing queue
+ */
 export async function continueCrawlingProcess() {
-
-    logger.info("Crawling Process starts again where it stopped");
-
-    // Continue crawling until no URLs remain in queue
-    while (await hasNextUrl()) {
-
-        // Fetch next URL entry from queue table
-            const entry = await getNextUrlFromDB();
-            const url = entry.url_of_source;
-            const parentUrl = entry.parent_url ?? null;
-
-        try {
-            //get the json from the url
-            const res = await fetch(url)
-            const STACObject = await res.json()
-
-            logger.info(`Crawling: ${url}`);
-            
-            // Only proceed if valid JSON was retrieved
-            if (validateStacObject(STACObject).valid) {
-
-                //for Catalogs: put the child urls into the queue
-                //for Collections: put the child urls into the queue, save the data in the sources/collections db
-                await handleSTACObject(STACObject, url, parentUrl)
-        
-                } else {
-                    logger.warn("Warning: Invalid STAC object")
-                }
-            
-        } catch(err) {
-            logger.warn(`Warning: Did not crawled the following url: ${url} because of the following error: ${err}`)
-        }
-        
-        // Remove processed URL from queue to avoid re-processing
-        await removeFromQueue(url);
-        await sleep(CRAWL_DELAY_MS);
-    }
-
+    logger.info("Resuming crawler");
+    await runParallelLoop();
     logger.info("Crawling finished");
 }

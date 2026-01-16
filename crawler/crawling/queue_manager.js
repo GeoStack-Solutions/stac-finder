@@ -18,27 +18,26 @@ import { loadUncrawledSources } from "./source_manager.js"
  * @function addToQueue
  */
 export async function addToQueue(titles, urls, parentUrls = null) {
+    if (!Array.isArray(titles)) titles = [titles];
+    if (!Array.isArray(urls)) urls = [urls];
+
+    if (!Array.isArray(parentUrls)) {
+        parentUrls = Array(titles.length).fill(parentUrls);
+    }
 
     try {
-        //upload title and url
-        // await query(`
-        //     INSERT INTO stac."urlQueue" (title_of_source, url_of_source, parent_url)
-        //     VALUES ($1, $2, $3)`,
-        //     [title, url, parentUrl]
-        // )
-
         const res = await query(`
             INSERT INTO stac."urlQueue" (title_of_source, url_of_source, parent_url)
             SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
-            ON CONFLICT (url_of_source) DO NOTHING`,
-            [titles, urls, parentUrls]
-        )
+            ON CONFLICT (url_of_source) DO NOTHING
+        `, [titles, urls, parentUrls]);
 
-        logger.info(`Added ${res.rowCount} URL's to the queue`)
+        logger.info(`Added ${res.rowCount} URL(s) to the queue`);
+        return res.rowCount;
 
-    } catch(err) {
-        //log error
-        logger.warn(`Did not add the data to the queue because of the following error: ${err}`)
+    } catch (err) {
+        logger.warn(`Could not add URLs to queue: ${err.message}`);
+        return 0;
     }
 }
 
@@ -46,27 +45,11 @@ export async function addToQueue(titles, urls, parentUrls = null) {
  * Removes a url from the queue
  * @param {string} url 
  */
-export async function removeFromQueue(url){
-
-    //check if the url is in the queue
-    if (!(await isInQueue(url))){
-        logger.info(`Did not remove the following url: ${url}, it is not in the queue`)
-        return
-    }
-    
-    try {
-        //delete row
-        await query(`
-            DELETE FROM stac."urlQueue"
-            WHERE url_of_source = $1`,
-            [url])
-
-        //log deleted Data
-        logger.info(`Deleted from queue: ${url}`)
-    } catch(err) {
-        //log error
-        logger.warn(`Did not deleted the data from the queue because of the following error: ${err}`)
-    }
+export async function removeFromQueueById(id) {
+    await query(`
+        DELETE FROM stac."urlQueue"
+        WHERE id = $1
+    `, [id]);
 }
 
 /**
@@ -74,18 +57,8 @@ export async function removeFromQueue(url){
  * @function clearQueue
  */
 export async function clearQueue() {
-    
-    try {
-        //delete data
-        await query(`
-            DELETE FROM stac."urlQueue"`)
-
-        //log deleted Data
-        logger.info(`cleared queue`)
-    } catch(err) {
-        //log error
-        logger.warn(`Did not cleared the queue because of the following error: ${err}`)
-    }
+    await query(`DELETE FROM stac."urlQueue"`);
+    logger.info("Queue cleared");
 }
 
 /**
@@ -126,7 +99,7 @@ export async function isInQueue(url){
  * @returns {Promise<void>}
  */
 export async function initializeQueue() {
-    const sources = await loadUncrawledSources(); // from source_manager
+    const sources = await loadUncrawledSources();
 
     for (const src of sources) {
         await addToQueue(src.title, src.url, null);
@@ -144,13 +117,18 @@ export async function initializeQueue() {
  *                                or null if queue is empty.
  */
 export async function getNextUrlFromDB() {
-    const result = await query(`
-        Select * FROM stac."urlQueue"
-        ORDER BY id ASC
-        LIMIT 1;
-        `);
+    const res = await query(`
+        DELETE FROM stac."urlQueue"
+        WHERE id = (
+            SELECT id FROM stac."urlQueue"
+            ORDER BY id
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+        )
+        RETURNING *;
+    `);
 
-        return result.rows[0] || null;
+    return res.rows[0] || null;
 }
 
 /**
@@ -165,8 +143,8 @@ export async function getNextUrlFromDB() {
 export async function hasNextUrl() {
     const result = await query(`
         SELECT COUNT(*) AS count
-        FROM stac."urlQueue";
-        `);
+        FROM stac."urlQueue"
+    `);
 
-        return Number(result.rows[0].count) > 0;
+    return Number(result.rows[0].count) > 0;
 }
