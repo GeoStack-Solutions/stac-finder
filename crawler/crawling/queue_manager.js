@@ -73,7 +73,7 @@ export async function addToQueue(title, url, parentUrl = null) {
  * Removes a url from the queue
  * @param {string} url 
  */
-export async function removeFromQueue(url){
+/* export async function removeFromQueue(url){
 
     //check if the url is in the queue
     if (!(await isInQueue(url))){
@@ -94,7 +94,7 @@ export async function removeFromQueue(url){
         //log error
         logger.warn(`Did not deleted the data from the queue because of the following error: ${err}`)
     }
-}
+} */
 
 /**
  * Clears the current queue (e.g. at start of crawler run).
@@ -170,7 +170,7 @@ export async function initializeQueue() {
  * @returns {Promis<Object|null>} The next queue entry (id, title_of_source, url_of_source)
  *                                or null if queue is empty.
  */
-export async function getNextUrlFromDB() {
+/* export async function getNextUrlFromDB() {
     const result = await query(`
         Select * FROM stac."urlQueue"
         ORDER BY id ASC
@@ -178,7 +178,7 @@ export async function getNextUrlFromDB() {
         `);
 
         return result.rows[0] || null;
-}
+} */
 
 /**
 * Checks whether the queue currently contians URLs to process.
@@ -196,4 +196,23 @@ export async function hasNextUrl() {
         `);
 
         return Number(result.rows[0].count) > 0;
+}
+
+/**
+ * 
+ */
+
+export async function getAndRemoveNextUrl() {
+    const result = await query(`
+        DELETE FROM stac."urlQueue"
+        WHERE id = (
+            SELECT id FROM stac."urlQueue"
+            ORDER BY id
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+        )
+        RETURNING *;
+    `);
+
+    return result.rows[0] || null;
 }
