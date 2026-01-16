@@ -107,11 +107,20 @@ const getCollections = async (req, res) => {
         message: paginationError.message
       });
     }
-    sql += ` LIMIT ${limit} OFFSET ${offset}`;
+    
+    // Fetch one extra item to check if there are more results
+    const fetchLimit = limit + 1;
+    sql += ` LIMIT ${fetchLimit} OFFSET ${offset}`;
 
     const result = await db.query(sql, queryParams);
 
-    const collections = result.rows.map((row) => {
+    // Check if there are more results than requested
+    const hasMoreResults = result.rows.length > limit;
+    
+    // Only return the requested number of items (not the extra one)
+    const rowsToReturn = hasMoreResults ? result.rows.slice(0, limit) : result.rows;
+
+    const collections = rowsToReturn.map((row) => {
       let bbox = null;
       if (row.spatial_extent && row.spatial_extent.coordinates) {
         const coords = row.spatial_extent.coordinates[0];
@@ -137,7 +146,7 @@ const getCollections = async (req, res) => {
       };
     });
 
-    const links = createPaginationLinks('/collections', req.query, offset, limit, collections.length);
+    const links = createPaginationLinks('/collections', req.query, offset, limit, collections.length, hasMoreResults);
 
     return res.json({ collections, links });
 
