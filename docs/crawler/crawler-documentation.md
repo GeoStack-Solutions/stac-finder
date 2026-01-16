@@ -9,16 +9,29 @@ The crawler runs in node js and needs a connection to the STAC Finder Database. 
 TODO: Falls die Ordnerstruktur geändert wird, müssen wir die Pfade anpassen.
 
 ## Installations
-We use the dependencies ajv, ajv-formats, dotenv, pg and winston. To install these, navigate to the path "crawler\" and type "npm install" into the terminal.
+We use the dependencies ajv, ajv-formats, dotenv, p-limit, pg and winston. To install these, navigate to the path "crawler\" and type "npm install" into the terminal.
 
 ## Crawler Usage
 To start the crawling process, make sure that you have a working connection to the Database. 
 *for now:* Then create a temporal js file in the folder "crawler\crawling\tests" with the following code:
 
 ```bash
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({
+  path: path.resolve(__dirname, "../../.env")
+});
+
+// MUST be after dotenv.config()
 import { startCrawler } from "../crawler_engine.js";
 
-await startCrawler()
+
+await startCrawler();
 ```
 
 TODO: Crawling start, wie er im finalen Prozess sein wird beschreiben
