@@ -251,6 +251,59 @@ export async function validateQueueEntry(title, url, parentUrl = null) {
 }
 
 /**
+ * Process a single URL
+ * - Fetches the URL
+ * - Validates content
+ * - Saves children directly to the DB
+ * * @param {Object} entry - The queue entry (url_of_source, parent_url, ...)
+ */
+export async function processUrl(entry) {
+    const url = entry.url_of_source;
+    const parentUrl = entry.parent_url ?? null;
+
+    try {
+        // Fetch STAC JSON with retry
+        const STACObject = await fetchWithRetry(url);
+        logger.info(`Crawling: ${url}`);
+        
+        // Only proceed if valid JSON was retrieved
+        if (validateStacObject(STACObject).valid) {
+            
+            // handleSTACObject returns list of children objects {title, url}
+            const childData = await handleSTACObject(STACObject, url, parentUrl);
+
+            // Create LOCAL arrays for this specific worker/task.
+            const batchTitles = [];
+            const batchUrls = [];
+            const batchParents = [];
+
+            if (childData && Array.isArray(childData)) {
+                for(let child of childData) {
+                    if(validateQueueEntry(child.title, child.url, url)) {
+                        batchTitles.push(child.title);
+                        batchUrls.push(child.url);
+                        batchParents.push(url); // Parent is the current URL
+                    }
+                }
+            }
+
+            // If children were found, add them to the queue immediately
+            if (batchUrls.length > 0) {
+                await addToQueue(batchTitles, batchUrls, batchParents);
+            }
+
+        } else {
+            logger.warn("Warning: Invalid STAC object");
+        }
+        
+    } catch(err) {
+        logger.warn(`Warning: Could not crawl ${url}: ${err.message}`);
+    } 
+    
+}
+
+
+/**
  * @param {Object} source - The source object from the database (id, url, type, title).
  */
 export async function crawlStacApi(source) {

@@ -1,4 +1,6 @@
 //imports 
+import pLimit from 'p-limit';
+
 import {
     initializeQueue,
     getNextUrlFromDB,
@@ -10,8 +12,7 @@ import {
 } from "./queue_manager.js";
 
 import { loadUncrawledSources } from "./source_manager.js";
-import { handleSTACObject, crawlStacApi, validateQueueEntry, fetchWithRetry } from "./crawler_functions.js"
-import { validateStacObject } from "../parsing/json_validator.js";
+import { crawlStacApi, validateQueueEntry, processUrl } from "./crawler_functions.js"
 import { logger } from "./src/config/logger.js"
 import { getSTACIndexData } from "../data_management/stac_index_client.js";
 import { isInSources } from "./source_manager.js";
@@ -24,16 +25,55 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const backupFilePath = path.resolve(__dirname, "./src/data/backupCopy.json")
 
+// Configuration for parallel crawling
+const CONCURRENCY_LIMIT = 5; 
+const limit = pLimit(CONCURRENCY_LIMIT);
+
 const CRAWL_DELAY_MS = 100; // Polite delay
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+
+/**
+ * Parallel Loop Manager:
+ * - Fetches batches of URLs from the DB
+ * - Assigns them to p-limit workers
+ * - Waits for batch completion
+ */
+async function runParallelLoop() {
+    // Continue crawling until no URLs remain in queue
+    while (await hasNextUrl()) {
+        const batch = [];
+
+        // Fill the batch until limit is reached or queue is empty
+        while (batch.length < CONCURRENCY_LIMIT && await hasNextUrl()) {
+            
+            // fetch and DELETE entry atomically
+            const entry = await getNextUrlFromDB();
+            
+            if (entry) {
+                // Wrap the processUrl task with p-limit
+                const task = limit(() => processUrl(entry));
+                batch.push(task);
+            }
+        }
+
+        if (batch.length === 0) break;
+
+        // Wait for all tasks in this batch to complete (or fail)
+        await Promise.all(batch);
+        
+        
+        await sleep(CRAWL_DELAY_MS);
+    }
+}
 
 /**
 * Main crawler loop:
 * - Loads uncrawled sources from DB
 * - Strategy A (API): Crawls directly via /collections
 * - Strategy B (Static): Adds to queue for recursive processing
-*
+* - Starts Parallel Processing
 * @async
 * @function startCrawler
 * @returns {Promise<void>} Completes when all APIs are done and the static queue is empty
@@ -99,16 +139,9 @@ export async function startCrawler() {
 
     //make sure that the length of the arrays is equal
     //otherwise the data could get mixed up
-    if (urlData.titles.length == urlData.urls.length) {
-
-        //push uncrawled sources to the queue
-        await addToQueue(urlData.titles, urlData.urls, urlData.parentUrls); //
-
-    } else {
-        logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls you want to add to the queue.`)
-        throw err
+    if (urlData.titles.length == urlData.urls.length && urlData.urls.length > 0) {
+        await addToQueue(urlData.titles, urlData.urls, urlData.parentUrls); 
     }
-
     resetUrlData()
 
     // Load URLs from STAC Index (fail-safe)
@@ -144,91 +177,25 @@ export async function startCrawler() {
 
         //make sure that the length of the arrays is equal
         //otherwise the data could get mixed up
-        if (urlData.titles.length == urlData.urls.length) {
-
-            //add the data to the queue
+        if (urlData.titles.length == urlData.urls.length && urlData.urls.length > 0) {
             await addToQueue(urlData.titles, urlData.urls, urlData.parentUrls)
-
             logger.info("Added URL's from the STAC Index Database to the queue")
-
-        } else {
-            logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls you want to add to the queue.`)
-            throw err
         }
-
         resetUrlData()
 
     } catch (err) {
         logger.error("Could not load STAC Index data, starting with existing queue only.");
     }
 
-    // Continue crawling until no URLs remain in queue
-    while (await hasNextUrl()) {
-
-        // Fetch next URL entry from queue table
-            const entry = await getNextUrlFromDB();
-            const url = entry.url_of_source;
-            const parentUrl = entry.parent_url ?? null;
-
-        try {
-            // Fetch STAC JSON with retry
-            const STACObject = await fetchWithRetry(url)
-            logger.info(`Crawling: ${url}`);
-            
-            // Only proceed if valid JSON was retrieved
-            if (validateStacObject(STACObject).valid) {
-
-                //for Catalogs: get the child data and save the catalog data in the sources db
-                //for Collections: get the child data, save the collection data in the collections and the sources db
-                const childData = await handleSTACObject(STACObject, url, parentUrl)
-
-                for(let child of childData) {
-
-                    //validate child data
-                    if(validateQueueEntry(child.title, child.url, url)) {
-
-                        //add the child data to the urlData
-                        urlData.titles.push(child.title)
-                        urlData.urls.push(child.url)
-                        urlData.parentUrls.push(url)
-                    }
-                }
-
-                } else {
-                    logger.warn("Warning: Invalid STAC object")
-                }
-            
-        } catch(err) {
-            logger.warn(`Warning: Did not crawled the following url: ${url} because of the following error: ${err}`)
-        }
-
-        if (urlData.urls.length != urlData.titles.length || urlData.urls.length != urlData.parentUrls.length) {
-            logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls and 
-                ${urlData.parentUrls.length} parent urls you want to add to the queue.`)
-        }
-        
-        if (urlData.urls.length >= 1000 || !await hasNextUrl()) {
-
-            //add the data to the queue
-            await addToQueue(urlData.titles, urlData.urls, urlData.parentUrls)
-
-            //reset the urlData
-            resetUrlData()
-        }
-        
-        // Remove processed URL from queue to avoid re-processing
-        await removeFromQueue(url);
-    }
+   await runParallelLoop();
 
     logger.info("Crawling finished");
 }
 
 /**
 * Continue crawler-loop:
-* continues crawling if the crawling process stopped because of a network failiure
-* - repeatedly fetches the URLs that are already in the queue
-* - adds new URLs into queue
-* - removes processed URL
+* - continues crawling if the crawling process stopped
+* - Uses parallel processing via runParallelLoop
 *
 * This function implements the core recursive traversal described in the Pflichtenheft.
 *
@@ -240,39 +207,8 @@ export async function continueCrawlingProcess() {
 
     logger.info("Crawling Process starts again where it stopped");
 
-    // Continue crawling until no URLs remain in queue
-    while (await hasNextUrl()) {
-
-        // Fetch next URL entry from queue table
-            const entry = await getNextUrlFromDB();
-            const url = entry.url_of_source;
-            const parentUrl = entry.parent_url ?? null;
-
-        try {
-            // Fetch STAC JSON with retry
-            const STACObject = await fetchWithRetry(url)
-
-            logger.info(`Crawling: ${url}`);
-            
-            // Only proceed if valid JSON was retrieved
-            if (validateStacObject(STACObject).valid) {
-
-                //for Catalogs: put the child urls into the queue
-                //for Collections: put the child urls into the queue, save the data in the sources/collections db
-                await handleSTACObject(STACObject, url, parentUrl)
-        
-                } else {
-                    logger.warn("Warning: Invalid STAC object")
-                }
-            
-        } catch(err) {
-            logger.warn(`Warning: Did not crawled the following url: ${url} because of the following error: ${err}`)
-        }
-        
-        // Remove processed URL from queue to avoid re-processing
-        await removeFromQueue(url);
-        await sleep(CRAWL_DELAY_MS);
-    }
+    // Start parallel process
+    await runParallelLoop();
 
     logger.info("Crawling finished");
 }

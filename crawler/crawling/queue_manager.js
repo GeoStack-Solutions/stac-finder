@@ -161,28 +161,40 @@ export async function initializeQueue() {
     const sources = await loadUncrawledSources(); // from source_manager
 
     for (const src of sources) {
-        await addToQueue(src.title, src.url, null);
+        await addToQueue([src.title], [src.url], [null]);
     }
 
     logger.info(`Initialized queue with ${sources.length} source URLs`);
 }
 
 /**
- * Returns next URL in FIFO order and metadata row
- *
+ *Returns next URL and DELETES it immediately
+ * This prevents multiple parallel workers from grabbing the same URL
+ * Uses SKIP LOCKED to prevent locking issues
  * @async
  * @function getNextUrlFromDB
  * @returns {Promis<Object|null>} The next queue entry (id, title_of_source, url_of_source)
  *                                or null if queue is empty.
  */
 export async function getNextUrlFromDB() {
-    const result = await query(`
-        Select * FROM stac."urlQueue"
-        ORDER BY id ASC
-        LIMIT 1;
+    try {
+        const result = await query(`
+            DELETE FROM stac."urlQueue"
+            WHERE id = (
+                SELECT id
+                FROM stac."urlQueue"
+                ORDER BY id ASC
+                FOR UPDATE SKIP LOCKED
+                LIMIT 1
+            )
+            RETURNING *;
         `);
 
         return result.rows[0] || null;
+    } catch (err) {
+        logger.error(`Error fetching/deleting next URL: ${err.message}`);
+        return null;
+    }
 }
 
 /**
