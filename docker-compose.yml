@@ -26,7 +26,9 @@ services:
     volumes:
       - ./api:/app/api
       - /app/api/node_modules
+      - ./docs:/app/docs
       - ./web-ui:/app/web-ui
+      - ./api/logs:/app/api/logs
     command: npm run dev # use npm start for production
 
 volumes:

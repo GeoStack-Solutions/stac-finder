@@ -49,6 +49,19 @@ export async function getSourceIdByUrl(url) {
 }
 
 /**
+ * Get the last crawled timestamp for a specific URL before it is overwritten.
+ * @param {string} url
+ * @returns {Promise<Date|null>}
+ */
+export async function getLastCrawledTimestamp(url) {
+  const res = await pool.query(
+    `SELECT last_crawled_timestamp FROM stac.sources WHERE url = $1 LIMIT 1;`,
+    [url]
+  );
+  return res.rows[0]?.last_crawled_timestamp ?? null;
+}
+
+/**
  * Insert or update a STAC collection with metadata normalization
  * Handles array/JSON conversions, spatial geometry, and temporal bounds 
  * Implements Duplicate Handling via Upsert Strategy

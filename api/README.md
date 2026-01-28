@@ -83,29 +83,6 @@ All query parameters are validated against whitelists to prevent SQL injection a
 
 **STAC API Compliance**: This implements the [STAC API Sort Extension](https://github.com/stac-api-extensions/sort) and follows OGC API - Features pagination patterns for HTTP GET requests.
 
-### Collection Details Endpoint (`/collections/{id}`)
-
-Retrieves the full metadata for a specific collection identified by its ID.
-
-- **Path Parameter**: `id` (Integer - The unique identifier of the collection)
-- **Response**: Returns the STAC Collection JSON (v1.0.0).
-
-**Example:**
-```
-GET /collections/123                   # Get collection with ID 123
-```
-
-**Response (JSON):**
-Returns a standard STAC Collection object including `extent`, `summaries`, and `links`.
-
-### Filtering
-
-The API supports STAC-compliant filtering with multiple query parameters:
-
-#### Text Search (`q`)
-- **`q`**: Full-text search across title, description, keywords, ...
-- **Status**: Structure prepared in `utils/filtering.js`
-- **Planned**: PostgreSQL ILIKE or full-text search (to_tsvector)
 ### Filtering
 
 The API supports STAC-compliant filtering with multiple query parameters:
@@ -136,9 +113,31 @@ GET /collections?q=sentinel&limit=5   # Combine with pagination
 - **Planned**: PostGIS ST_Intersects query with spatial_extent column
 
 #### Datetime (`datetime`)
-- **`datetime`**: Temporal filter as ISO8601 interval
-- **Status**: Structure prepared in `utils/filtering.js`
-- **Planned**: Filter using temporal_start and temporal_end columns
+- **`datetime`**: STAC-compliant temporal filter using ISO8601 intervals
+- **Database fields**: `temporal_start`, `temporal_end` (nullable for open-ended collections)
+- **Supported formats**: Single timestamp, closed intervals, open-ended intervals
+- **Operations**: CONTAINS, DURING, BEFORE, AFTER
+
+**Examples:**
+```
+GET /collections?datetime=2020-06-15T12:00:00Z              # Collections containing this timestamp
+GET /collections?datetime=2020-01-01/2020-12-31             # Collections overlapping with 2020
+GET /collections?datetime=2020-01-01/..                     # Collections available from 2020 onwards
+GET /collections?datetime=../2020-12-31                     # Collections available before 2021
+GET /collections?datetime=2020-01-01/2020-12-31&limit=5     # Combine with pagination
+```
+
+**Supported Formats:**
+- Single timestamp: `2020-06-15T12:00:00Z` → Collections containing this exact moment
+- Closed interval: `2020-01-01/2020-12-31` → Collections overlapping with this period
+- Open end: `2020-01-01/..` → Collections ending on or after this date (or open-ended)
+- Open start: `../2020-12-31` → Collections starting on or before this date
+- Fully open: `../..` → No temporal filtering (all collections)
+
+**Notes:**
+- Supports ISO8601 date formats (with/without time, timezones, milliseconds)
+- Collections with NULL `temporal_end` (ongoing/open-ended) are included in relevant queries
+- All temporal comparisons use proper overlap logic per STAC specification
 
 #### CQL2 Filter (`filter`, `filter-lang`)
 - **`filter`**: Complex queries using CQL2 (Common Query Language)
@@ -147,6 +146,22 @@ GET /collections?q=sentinel&limit=5   # Combine with pagination
 - **Implementation**: `utils/filtering.js` → `utils/queryBuilder.js` → `utils/cql2-service.py`
 
 **Note**: All filter utilities include input validation and SQL injection protection. Filters can be combined with sorting and pagination parameters.
+
+### Collection Details Endpoint (`/collections/{id}`)
+
+Retrieves the full metadata for a specific collection identified by its ID.
+
+- **Path Parameter**: `id` (Integer - The unique identifier of the collection)
+- **Response**: Returns the STAC Collection JSON (v1.0.0).
+
+**Example:**
+```
+GET /collections/123                   # Get collection with ID 123
+```
+
+**Response (JSON):**
+Returns a standard STAC Collection object including `extent`, `summaries`, and `links`.
+
 
 ### Health Endpoint (`/health`)
 
@@ -186,6 +201,28 @@ It does not return any STAC data and performs only a lightweight database check.
 - **`target`**: Shows which database configuration the health check is currently testing. This is mainly intended for development and debugging
 
 - **`timestamp`**: Time of the health check in UTC (Coordinated Universal Time)
+
+## Logging & Monitoring
+
+The API includes comprehensive request and error logging using Winston and Morgan:
+
+- **HTTP Request Logging**: Every API request is logged with method, URL, status code, response time, IP address, and user agent
+- **Error Logging**: Errors are logged with full stacktrace and request context
+- **Log Rotation**: Daily log files with automatic rotation (max 20MB per file, 14 days retention)
+- **Log Files**: 
+  - `logs/combined-YYYY-MM-DD.log` - All logs (info, warn, error)
+  - `logs/error-YYYY-MM-DD.log` - Error logs only
+
+**Viewing Logs:**
+```bash
+# Live logs (console output)
+docker-compose logs -f api
+
+# Log files (inside container)
+docker exec stac-api cat /app/api/logs/combined-2026-01-06.log
+```
+
+For detailed documentation, see [docs/api/logging.md](../docs/api/logging.md).
 
 ## Development Guidelines
 

@@ -126,3 +126,30 @@ export function validateSource(source) {
 
     return true
 }
+
+/**
+ * function shows if a url is already in the queue
+ * @param {string} url 
+ * @returns {boolean} true - if the url is in the database
+ * @returns {boolean} false - if the url is not in the database
+ */
+export async function isInSources(url){
+
+    try{
+        //select row
+        const data = await query(`
+            SELECT 1 FROM stac.sources
+            WHERE url = $1`,
+            [url])
+
+        //if tehre is any data in sources, return queue
+        if (data.rowCount > 0){
+            return true
+        } else {
+            return false
+        }
+
+    } catch(err) {
+        logger.warn(`could not show if data is in sources because of the following error: ${err}`)
+    }
+}

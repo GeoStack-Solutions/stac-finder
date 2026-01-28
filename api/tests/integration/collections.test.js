@@ -42,3 +42,38 @@ describe('GET /collections', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('GET /collections/:id', () => {
+  test('should return a single collection by id', async () => {
+    // Erst eine Collection aus der Liste holen
+    const listRes = await request(app).get('/collections?limit=1');
+    const collectionId = listRes.body.collections[0]?.id;
+    
+    expect(collectionId).toBeDefined();
+    
+    const res = await request(app).get(`/collections/${collectionId}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('id', collectionId);
+    expect(res.body).toHaveProperty('type', 'Collection');
+    expect(res.body).toHaveProperty('stac_version', '1.0.0');
+  });
+
+  test('should return 404 for non-existent collection', async () => {
+    const res = await request(app).get('/collections/non-existent-id-12345');
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty('error', 'Collection not found');
+  });
+
+  test('should include required STAC links', async () => {
+    const listRes = await request(app).get('/collections?limit=1');
+    const collectionId = listRes.body.collections[0]?.id;
+    
+    const res = await request(app).get(`/collections/${collectionId}`);
+    expect(res.status).toBe(200);
+    
+    const links = res.body.links;
+    expect(links.find(l => l.rel === 'self')).toBeDefined();
+    expect(links.find(l => l.rel === 'root')).toBeDefined();
+    expect(links.find(l => l.rel === 'parent')).toBeDefined();
+  });
+});

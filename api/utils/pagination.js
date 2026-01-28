@@ -84,10 +84,11 @@ const buildQueryString = (params) => {
  * @param {Object} query - Original query parameters
  * @param {number} offset - Current offset
  * @param {number} limit - Current limit
- * @param {number} resultCount - Number of results returned
+ * @param {number} resultCount - Number of results returned 
+ * @param {boolean} hasMoreResults - Whether there are more results available (determined by LIMIT+1 check)
  * @returns {Array} Array of link objects
  */
-const createPaginationLinks = (baseUrl, query, offset, limit, resultCount) => {
+const createPaginationLinks = (baseUrl, query, offset, limit, resultCount, hasMoreResults = null) => {
     const links = [
         {
             rel: 'self',
@@ -96,8 +97,13 @@ const createPaginationLinks = (baseUrl, query, offset, limit, resultCount) => {
         }
     ];
 
-    // Add 'next' link if we got a full page of results
-    if (resultCount === limit) {
+    // Determine if there are more results
+    const shouldShowNext = hasMoreResults !== null 
+        ? hasMoreResults 
+        : resultCount === limit;
+
+    // Add 'next' link if there are definitely more results
+    if (shouldShowNext) {
         const nextOffset = offset + limit;
         const nextToken = createPaginationToken(nextOffset);
         const nextQuery = { ...query, token: nextToken, limit };

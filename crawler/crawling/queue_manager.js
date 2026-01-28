@@ -12,53 +12,30 @@ import { loadUncrawledSources } from "./source_manager.js"
 
 /**
  * Adds a URL to the queue if not already present.
- * @param {string} title title of the url
- * @param {string} url 
- * @param {string|null} parentUrl The URL of the parent catalog
+ * @param {string} titles array of titles
+ * @param {string} urls array of urls
+ * @param {string|null} parentUrls arrays of urls of the parent stac objects
  * @function addToQueue
  */
-export async function addToQueue(title, url, parentUrl = null) {
-
-    // validate URL format
-    try {
-        new URL(url)
-    } catch {
-        logger.warn(`Did not added the following invalid URL to the queue: ${url}`)
-        return
-    }
-
-    // validate title
-    if (typeof title !== "string") {
-        logger.warn(`Did not added the following invalid entry with the title: ${title}`)
-        return
-    }
-
-    // validate parentUrl 
-    if (parentUrl != null) {
-        try {
-            new URL(parentUrl)
-        } catch {
-            logger.warn(`Did not add the following invalid parent URL to the queue: ${parentUrl}`)
-            parentUrl = null
-        }
-    }
-
-    //check if the url is already in the queue
-    if (await isInQueue(url)){
-        logger.info(`Did not added the following url: ${url}, because it is already in the queue`)
-        return
-    }
+export async function addToQueue(titles, urls, parentUrls = null) {
 
     try {
         //upload title and url
-        await query(`
+        // await query(`
+        //     INSERT INTO stac."urlQueue" (title_of_source, url_of_source, parent_url)
+        //     VALUES ($1, $2, $3)`,
+        //     [title, url, parentUrl]
+        // )
+
+        const res = await query(`
             INSERT INTO stac."urlQueue" (title_of_source, url_of_source, parent_url)
-            VALUES ($1, $2, $3)`,
-            [title, url, parentUrl]
+            SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
+            ON CONFLICT (url_of_source) DO NOTHING`,
+            [titles, urls, parentUrls]
         )
-        
-        //log uploaded Data
-        logger.info(`Added to queue: ${title}, ${url}`)
+
+        logger.info(`Added ${res.rowCount} URL's to the queue`)
+
     } catch(err) {
         //log error
         logger.warn(`Did not add the data to the queue because of the following error: ${err}`)
@@ -126,6 +103,7 @@ export async function isInQueue(url){
             WHERE url_of_source = $1`,
             [url])
 
+        //if there is any data in queue, return true
         if (data.rowCount > 0){
             return true
         } else {

@@ -75,3 +75,22 @@ The STAC API is accessible at `http://localhost:4000` and provides endpoints for
 **For detailed API documentation, parameters, and examples:**
 - [API Documentation](api/README.md) - Complete API reference with all endpoints and parameters
 - [Database Documentation](docs/database/) - Database schema and access guides
+
+## Crawler
+
+### Usage
+The Crawler runs in node js.
+
+*For Now, we will change it later:* To start the crawling process, start the docker and make sure that you have a working connection to the Database. Then create a temporal js file in the folder crawler\crawling\tests with the following code:
+
+```bash
+import { startCrawler } from "../crawler_engine.js";
+
+await startCrawler()
+```
+
+TODO: Crawling start, wie er im finalen Prozess sein wird beschreiben
+
+Details about the crawling process will be shown in the terminal.
+
+**For more information:** [Crawler Documentation](/docs/crawler/crawler-documentation.md)

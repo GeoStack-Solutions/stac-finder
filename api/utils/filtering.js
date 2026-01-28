@@ -67,83 +67,125 @@ const parseTextSearch = (q) => {
 
 /**
  * Parse bbox filter parameter
- * @param {string|Array} bbox - Bounding box as "minx,miny,maxx,maxy" or array
+ * @param {string|Array} bbox - Bounding box as "minx,miny,maxx,maxy" (or 6 values) or array
  * @returns {Object} { whereClause, params, error }
  */
 const parseBboxFilter = (bbox) => {
-    // TODO: Implement bbox filtering
-    // Format: minx,miny,maxx,maxy (WGS84)
-    // Use PostGIS ST_Intersects with spatial_extent column
-    if (!bbox) {
-        return { whereClause: null, params: [], error: null };
-    }
-    
-    // Parse bbox string to array
-    let bboxArray;
-    if (typeof bbox === 'string') {
-        bboxArray = bbox.split(',').map(v => parseFloat(v));
-    } else if (Array.isArray(bbox)) {
-        bboxArray = bbox.map(v => parseFloat(v));
-    } else {
-        return {
-            whereClause: null,
-            params: [],
-            error: {
-                status: 400,
-                error: 'Invalid bbox format',
-                message: 'bbox must be "minx,miny,maxx,maxy"'
-            }
-        };
-    }
-    
-    // Validate bbox has 4 coordinates
-    if (bboxArray.length !== 4 || bboxArray.some(isNaN)) {
-        return {
-            whereClause: null,
-            params: [],
-            error: {
-                status: 400,
-                error: 'Invalid bbox',
-                message: 'bbox must contain 4 valid numbers: minx,miny,maxx,maxy'
-            }
-        };
-    }
-    
-    const [minx, miny, maxx, maxy] = bboxArray;
-    
-    // Validate coordinate ranges
-    if (minx < -180 || minx > 180 || maxx < -180 || maxx > 180 ||
-        miny < -90 || miny > 90 || maxy < -90 || maxy > 90) {
-        return {
-            whereClause: null,
-            params: [],
-            error: {
-                status: 400,
-                error: 'Invalid bbox coordinates',
-                message: 'Longitude must be -180 to 180, latitude must be -90 to 90'
-            }
-        };
-    }
-    
-    // TODO: Build PostGIS ST_Intersects WHERE clause
-    // Example: ST_Intersects(spatial_extent, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+  if (!bbox) {
     return { whereClause: null, params: [], error: null };
+  }
+
+  // Parse bbox string/array to numeric array
+  let bboxArray;
+  if (typeof bbox === 'string') {
+    bboxArray = bbox.split(',').map(v => parseFloat(String(v).trim()));
+  } else if (Array.isArray(bbox)) {
+    bboxArray = bbox.map(v => parseFloat(String(v).trim()));
+  } else {
+    return {
+      whereClause: null,
+      params: [],
+      error: {
+        status: 400,
+        error: 'Invalid bbox format',
+        message: 'bbox must be "minx,miny,maxx,maxy" (or 6 values) or an array'
+      }
+    };
+  }
+
+  // STAC allows 4 or 6 values (minx,miny,minz,maxx,maxy,maxz)
+  if (
+    (bboxArray.length !== 4 && bboxArray.length !== 6) ||
+    bboxArray.some(v => Number.isNaN(v))
+  ) {
+    return {
+      whereClause: null,
+      params: [],
+      error: {
+        status: 400,
+        error: 'Invalid bbox',
+        message: 'bbox must contain 4 (or 6) valid numbers'
+      }
+    };
+  }
+
+  // If 6 values: ignore z (altitude) for 2D spatial filtering
+  const minx = bboxArray[0];
+  const miny = bboxArray[1];
+  const maxx = bboxArray.length === 6 ? bboxArray[3] : bboxArray[2];
+  const maxy = bboxArray.length === 6 ? bboxArray[4] : bboxArray[3];
+
+  // Validate lat order
+  if (miny > maxy) {
+    return {
+      whereClause: null,
+      params: [],
+      error: {
+        status: 400,
+        error: 'Invalid bbox coordinates',
+        message: 'miny must be <= maxy'
+      }
+    };
+  }
+
+  // Validate coordinate ranges (WGS84)
+  if (
+    minx < -180 || minx > 180 || maxx < -180 || maxx > 180 ||
+    miny < -90  || miny > 90  || maxy < -90  || maxy > 90
+  ) {
+    return {
+      whereClause: null,
+      params: [],
+      error: {
+        status: 400,
+        error: 'Invalid bbox coordinates',
+        message: 'Longitude must be -180..180 and latitude must be -90..90'
+      }
+    };
+  }
+
+  // Normal case: minx <= maxx
+  if (minx <= maxx) {
+    const params = [minx, miny, maxx, maxy];
+    const whereClause = `ST_Intersects(spatial_extent, ST_MakeEnvelope($1, $2, $3, $4, 4326))`;
+    return { whereClause, params, error: null };
+  }
+
+  // Anti-meridian crossing (minx > maxx): split into two envelopes and OR them
+  // Envelope A: [-180, miny, maxx, maxy]
+  // Envelope B: [minx,  miny, 180, maxy]
+  const params = [-180, miny, maxx, maxy, minx, miny, 180, maxy];
+  const whereClause = `(
+    ST_Intersects(spatial_extent, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+    OR
+    ST_Intersects(spatial_extent, ST_MakeEnvelope($5, $6, $7, $8, 4326))
+  )`;
+
+  return { whereClause, params, error: null };
 };
 
+
 /**
- * Parse datetime filter parameter
- * @param {string} datetime - Datetime range as ISO8601 interval
+ * Parse datetime filter parameter (STAC-conformant)
+ * Supports ISO8601 intervals and temporal operations (BEFORE, AFTER, DURING)
+ * 
+ * @param {string} datetime - Datetime as single timestamp or interval
+ * 
+ * Supported formats:
+ * - Single timestamp: "2020-01-01T00:00:00Z" (exact match or contains)
+ * - Closed interval: "2020-01-01T00:00:00Z/2020-12-31T23:59:59Z" (DURING)
+ * - Open start: "../2020-12-31T23:59:59Z" (BEFORE or ends before)
+ * - Open end: "2020-01-01T00:00:00Z/.." (AFTER or starts after)
+ * - Fully open: "../.." (any temporal extent)
+ * 
  * @returns {Object} { whereClause, params, error }
  */
 const parseDatetimeFilter = (datetime) => {
-    // TODO: Implement datetime filtering
-    // Format: "2020-01-01T00:00:00Z/2020-12-31T23:59:59Z" or "../2020-12-31" or "2020-01-01/.."
-    // Use temporal_start and temporal_end columns
     if (!datetime) {
         return { whereClause: null, params: [], error: null };
     }
     
-    // Validate datetime format (basic check)
+    // Validate datetime is a string
     if (typeof datetime !== 'string') {
         return {
             whereClause: null,
@@ -156,8 +198,127 @@ const parseDatetimeFilter = (datetime) => {
         };
     }
     
-    // TODO: Parse ISO8601 interval and build WHERE clause
-    return { whereClause: null, params: [], error: null };
+    const trimmed = datetime.trim();
+    
+    // Handle fully open interval (matches any temporal extent)
+    if (trimmed === '../..' || trimmed === '') {
+        return { whereClause: null, params: [], error: null };
+    }
+    
+    // Check if it's an interval (contains '/')
+    if (trimmed.includes('/')) {
+        const parts = trimmed.split('/');
+        
+        if (parts.length !== 2) {
+            return {
+                whereClause: null,
+                params: [],
+                error: {
+                    status: 400,
+                    error: 'Invalid datetime interval',
+                    message: 'datetime interval must have format: start/end'
+                }
+            };
+        }
+        
+        const [startStr, endStr] = parts;
+        
+        // Parse start and end timestamps
+        const hasStart = startStr !== '..';
+        const hasEnd = endStr !== '..';
+        
+        let startDate = null;
+        let endDate = null;
+        
+        if (hasStart) {
+            startDate = new Date(startStr);
+            if (isNaN(startDate.getTime())) {
+                return {
+                    whereClause: null,
+                    params: [],
+                    error: {
+                        status: 400,
+                        error: 'Invalid datetime',
+                        message: `Invalid start datetime: ${startStr}`
+                    }
+                };
+            }
+        }
+        
+        if (hasEnd) {
+            endDate = new Date(endStr);
+            if (isNaN(endDate.getTime())) {
+                return {
+                    whereClause: null,
+                    params: [],
+                    error: {
+                        status: 400,
+                        error: 'Invalid datetime',
+                        message: `Invalid end datetime: ${endStr}`
+                    }
+                };
+            }
+        }
+        
+        // Validate that start < end if both are present
+        if (hasStart && hasEnd && startDate >= endDate) {
+            return {
+                whereClause: null,
+                params: [],
+                error: {
+                    status: 400,
+                    error: 'Invalid datetime interval',
+                    message: 'Start datetime must be before end datetime'
+                }
+            };
+        }
+        
+        // Build WHERE clause based on interval type
+        const conditions = [];
+        const params = [];
+        
+        if (hasStart && hasEnd) {
+            // DURING: Collection temporal extent overlaps with query interval
+            // Overlap condition: collection_start <= query_end AND (collection_end >= query_start OR collection_end IS NULL)
+            params.push(endStr, startStr);
+            conditions.push(`(temporal_start <= $${params.length - 1} AND (temporal_end >= $${params.length} OR temporal_end IS NULL))`);
+        } else if (hasStart && !hasEnd) {
+            // AFTER: Collection starts on or after the given time (open end)
+            // Or: Collection temporal extent intersects with [start, infinity)
+            params.push(startStr);
+            conditions.push(`(temporal_end >= $${params.length} OR temporal_end IS NULL)`);
+        } else if (!hasStart && hasEnd) {
+            // BEFORE: Collection ends on or before the given time (open start)
+            // Or: Collection temporal extent intersects with (-infinity, end]
+            params.push(endStr);
+            conditions.push(`(temporal_start <= $${params.length})`);
+        }
+        
+        const whereClause = conditions.length > 0 ? conditions.join(' AND ') : null;
+        return { whereClause, params, error: null };
+        
+    } else {
+        // Single timestamp: find collections that contain this timestamp
+        // Collection contains timestamp if: temporal_start <= timestamp <= temporal_end
+        const timestamp = new Date(trimmed);
+        
+        if (isNaN(timestamp.getTime())) {
+            return {
+                whereClause: null,
+                params: [],
+                error: {
+                    status: 400,
+                    error: 'Invalid datetime',
+                    message: `Invalid datetime: ${trimmed}`
+                }
+            };
+        }
+        
+        const params = [trimmed, trimmed];
+        const whereClause = `(temporal_start <= $1 AND (temporal_end >= $2 OR temporal_end IS NULL))`;
+        
+        return { whereClause, params, error: null };
+    }
 };
 
 const parseCql2Filter = (filter, filterLang) => {
