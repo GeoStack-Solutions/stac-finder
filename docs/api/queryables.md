@@ -15,7 +15,7 @@ Enum values for several fields are **dynamically derived from the database**, en
 ## GET /collections/queryables
 
 Returns a Queryables object describing all fields available for filtering collections.  
-Enum values for `license`, `platform`, `processingLevel`, `constellation`, `keywords`, and `provider` are dynamically derived from the database.
+Enum values for `license`, `platform`, `processingLevel`, `constellation` and `provider` are dynamically derived from the database.
 
 ### Request
 ```http
@@ -42,14 +42,14 @@ The response lists all filterable properties, their data types, and—where appl
 | `platform` | string | Platform name (array-backed) | `platform = 'Sentinel-2'` | Dynamic (DB) |
 | `processingLevel` | string | Processing level (array-backed) | `processingLevel = 'L2A'` | Dynamic (DB) |
 | `constellation` | string | Satellite constellation (array-backed) | `constellation = 'Sentinel'` | Dynamic (DB) |
-| `keywords` | string | Keyword tag (array-backed) | `keywords = 'Atmosphere'` | Dynamic (DB) |
+| `keywords` | string | Keyword tag (array-backed) | `keywords = 'Atmosphere'` | |
 | `provider` | string | Data provider name (JSONB-backed) | `provider = 'ESA'` | Dynamic (DB) |
 | `temporal_start` | string (date-time) | Start of temporal extent | `temporal_start >= '2020-01-01T00:00:00Z'` | – |
 | `temporal_end` | string (date-time) | End of temporal extent | `temporal_end <= '2022-12-31T23:59:59Z'` | – |
 
 ### Semantics of Array-Backed Fields
 
-The properties `platform`, `processingLevel`, `constellation`, and `keywords` are backed by PostgreSQL `text[]` columns.  
+The properties `platform`, `processingLevel` and `constellation` are backed by PostgreSQL `text[]` columns.  
 For these fields, the following semantics apply:
 
 **`=`**  
@@ -114,7 +114,6 @@ The following fields expose dynamic enum values derived from the database:
 - `platform`
 - `processingLevel`
 - `constellation`
-- `keywords`
 - `provider`
 
 This ensures:

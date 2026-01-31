@@ -1,4 +1,3 @@
-// api/utils/queryableMap.js
 module.exports = {
   id: { column: 'c.id', type: 'text' },
   title: { column: 'c.title', type: 'text' },
@@ -6,8 +5,12 @@ module.exports = {
   license: { column: 'c.license', type: 'text' },
   doi: { column: 'c.doi', type: 'text' },
 
+  // Temporal
   temporal_start: { column: 'c.temporal_start', type: 'timestamptz' },
   temporal_end: { column: 'c.temporal_end', type: 'timestamptz' },
+
+  // Spatial
+  spatial_extent: { column: 'c.spatial_extent', type: 'geometry' },
 
   // arrays (text[])
   keywords: { column: 'c.keywords', type: 'text_array' },

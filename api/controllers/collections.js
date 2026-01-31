@@ -13,12 +13,12 @@ const getCollections = async (req, res) => {
       'SELECT c.id, c.title, c.description, c.keywords, c.license, ' +
       'c.temporal_start, c.temporal_end, c.providers, ' +
       'c.doi, c.platform_summary, c.constellation_summary, c.gsd_summary, c.processing_level_summary, ' + 
-      '(SELECT url FROM test.sources WHERE id = c.source_id) AS source_url, ' +
+      '(SELECT url FROM stac.sources WHERE id = c.source_id) AS source_url, ' +
       'ST_AsGeoJSON(c.spatial_extent)::json as spatial_extent ' +
-      'FROM test.collections c';
+      'FROM stac.collections c';
 
     // For numberMatched: build a separate COUNT(*) query with the same WHERE conditions
-    let countSql = 'SELECT COUNT(*) FROM test.collections c';
+    let countSql = 'SELECT COUNT(*) FROM stac.collections c';
 
     const queryParams = [];
     const whereParts = [];
@@ -252,8 +252,8 @@ const getCollectionById = async (req, res) => {
         ST_YMin(c.spatial_extent) as ymin, 
         ST_XMax(c.spatial_extent) as xmax, 
         ST_YMax(c.spatial_extent) as ymax 
-      FROM test.collections c
-      LEFT JOIN test.sources s ON c.source_id = s.id
+      FROM stac.collections c
+      LEFT JOIN stac.sources s ON c.source_id = s.id
       WHERE c.id = $1
     `;
 

@@ -64,6 +64,22 @@ The following fields can be used in CQL2 filter expressions.
 
 ## Supported Operators
 
+### Spatial Operators
+
+Spatial functions allow advanced spatial filtering on geometry fields (e.g., `spatial_extent`). Supported functions:
+
+| Function             | Description                                 |
+|----------------------|---------------------------------------------|
+| `S_INTERSECTS`       | Intersects (default for bbox)               |
+| `S_WITHIN`           | Geometry is within the bbox                 |
+| `S_CONTAINS`         | Geometry contains the bbox                  |
+| `S_OVERLAPS`         | Geometry overlaps the bbox                  |
+
+**Example:**
+```cql
+S_WITHIN(spatial_extent, BBOX(5.8, 47.2, 15.0, 55.1))
+```
+
 ### Logical Operators
 
 | Operator | Description |
@@ -82,7 +98,7 @@ Supported for scalar fields (`id`, `title`, `description`, `license`, `doi`):
 | Operator | Description |
 |---------|-------------|
 | `=` | Equality |
-| `!=` | Inequality |
+| `<>` | Inequality |
 | `<` | Less than (timestamps only) |
 | `>` | Greater than (timestamps only) |
 | `LIKE` | Case-insensitive pattern matching |
