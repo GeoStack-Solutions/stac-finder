@@ -1,6 +1,7 @@
 import { pool } from './db_client.js'; 
-import chalk from "chalk"
 import { logger } from '../logging/logger.js';
+import chalk from "chalk";
+chalk.level = 3;
 
 // Convert any value to PostgreSQL TEXT[] array, handling nulls and type conversion
 const toTextArray = (v) =>

@@ -1,6 +1,7 @@
 import Migrate from '@radiantearth/stac-migrate';
-import chalk from "chalk"
 import { logger } from '../logging/logger.js';
+import chalk from "chalk";
+chalk.level = 3;
 
 /**
  * Normalizes STAC Collection to the newest Version (STAC 1.1).

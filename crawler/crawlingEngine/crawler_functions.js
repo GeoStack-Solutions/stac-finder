@@ -4,7 +4,8 @@ import { validateStacObject } from "../validation/json_validator.js"
 import { addToQueue } from "../queueManager/queue_manager.js"
 import { logger } from "../logging/logger.js"
 import { parseCollection } from "../handleCollections/CollectionParser.js"
-import chalk from "chalk"
+import chalk from "chalk";
+chalk.level = 3;
 
 
 const MAX_RETRIES = 3;       // Max attempts
