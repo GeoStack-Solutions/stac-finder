@@ -58,10 +58,10 @@ The current `docker-compose.yml` is already configured for development (no need 
   api:
     container_name: stac-api
     build:
-      context: .
+      context: ./api
       dockerfile: Dockerfile
     ports:
-      - "4000:3000"
+      - "4000:4000"
     env_file:
       - ./api/.env
     volumes: # all volumes are required
@@ -85,7 +85,7 @@ The current `docker-compose.yml` is already configured for development (no need 
     ports:
       - "8080:8080"
     environment:
-      - VUE_APP_API_URL=http://api:3000 
+      - VUE_APP_API_URL=http://api:4000 
     volumes: # volumes required
       - ./web-ui:/app 
       - /app/node_modules
@@ -123,10 +123,10 @@ The current `docker-compose.yml` is configured for **Development**. For producti
   api:
     container_name: stac-api
     build:
-      context: .
+      context: ./api
       dockerfile: Dockerfile
     ports:
-      - "4000:3000"
+      - "4000:4000"
     env_file:
       - ./api/.env
     volumes:
@@ -148,7 +148,7 @@ The current `docker-compose.yml` is configured for **Development**. For producti
    ports:
       - "8080:8080"
    environment:
-      - VUE_APP_API_URL=http://api:3000 
+      - VUE_APP_API_URL=http://api:4000 
     # PRODUCTION: Remove volumes
     depends_on:
       - api
@@ -197,7 +197,7 @@ npm start
 
 Accessible at:
 - Frontend (Web-UI): [http://localhost:8080](http://localhost:8080)
-- API Backend: [http://localhost:3000](http://localhost:3000)
+- API Backend: [http://localhost:4000](http://localhost:4000)
 
 
 **Services included:**
@@ -274,6 +274,25 @@ The STAC API is accessible at `http://localhost:4000` and provides STAC 1.0.0 co
 **For detailed documentation:**
 - [API Documentation](api/README.md)
 - [Query Parameters](docs/api/query-param/)
+
+## Web-UI (STAC Browser)
+
+The frontend is a customized [STAC Browser](https://github.com/radiantearth/stac-browser) with integrated STACFinder collection search.
+
+**Standard STAC Browser** allows browsing and searching within a single STAC catalog or API.
+
+**STACFinder Extension** enables **cross-catalog search** across all indexed STAC collections. The STACFinder API aggregates metadata from multiple catalogs, allowing users to discover and filter collections from different providers in one unified interface.
+
+**Key Features:**
+- Cross-catalog collection search (powered by STACFinder API)
+- Advanced filtering (free-text, temporal, spatial, CQL2 metadata)
+- Sorting and pagination
+- URL-based state for bookmarking and sharing
+- Seamless transition to native STAC catalog browsing
+
+Accessible at [http://localhost:8080](http://localhost:8080)
+
+**For detailed documentation:** [Web-UI Documentation](web-ui/docs/stacfinder.md)
 
 ## Crawler
 The Crawler collects infromation of all the collections in the STAC Index Database and saves these informations in a database so that you can browse through these collections on our STACFinder Website.
