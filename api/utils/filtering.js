@@ -349,6 +349,7 @@ const cql2JsonToAst = (node) => {
 
     // NOT
     if (op === 'NOT') {
+      if (args.length !== 1) throw new Error('NOT requires 1 arg');
       return { type: 'Not', expr: cql2JsonToAst(args[0]) };
     }
 
