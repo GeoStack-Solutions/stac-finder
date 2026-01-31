@@ -1,6 +1,8 @@
 //imports
 import { query } from "./db_client.js"
 import { logger } from "../logging/logger.js"
+import { checkDataType } from "ajv/dist/compile/validate/dataType.js"
+import chalk from "chalk"
 
 /**
  * @function getSTACIndexData
@@ -27,12 +29,12 @@ export async function getSTACIndexData() {
             data.push(row)
         }
 
-        logger.info(`Loaded ${result.rows.length} URLs from the stac index database.`)
+        logger.info(chalk.cyan(`Loaded ${result.rows.length} URLs from the stac index database.`))
 
         return data
 
     } catch (error) {
-        logger.error("Error loading URLs from the stac index database: " + error.message)
+        logger.error(chalk.red("Error loading URLs from the stac index database: " + error.message))
         throw error
     }
 }

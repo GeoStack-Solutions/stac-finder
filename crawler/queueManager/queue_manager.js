@@ -10,6 +10,7 @@ import { loadUncrawledSources } from "../sourceManager/source_manager.js"
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
+import chalk from "chalk"
 
 // Resolve backup file path relative to this module
 const __filename = fileURLToPath(import.meta.url)
@@ -47,11 +48,11 @@ export function saveInBackup() {
         fs.mkdirSync(path.dirname(backupFilePath), { recursive: true })
         fs.writeFileSync(backupFilePath, JSON.stringify(urlData))
         
-        logger.info("The crawling process has been stopped. The data that had not yet been uploaded to the database has been saved in a backup file.")
+        logger.info(chalk.cyan("The crawling process has been stopped. The data that had not yet been uploaded to the database has been saved in a backup file."))
+    
+    } else {
+        logger.info(chalk.cyan("The crawling process has been stopped. There is no temporary data to store in a backup file."))
     }
-
-    logger.info("The crawling process has been stopped. There is no temporary data to store in a backup file.")
-
 }
 
 /**
@@ -72,11 +73,11 @@ export async function addToQueue(titles, urls, parentUrls = null) {
             [titles, urls, parentUrls]
         )
 
-        logger.info(`Added ${res.rowCount} URL's to the queue`)
+        logger.info(chalk.cyan(`Added ${res.rowCount} URL's to the queue`))
 
     } catch(err) {
         //log error
-        logger.warn(`Did not add the data to the queue because of the following error: ${err}`)
+        logger.error(chalk.red(`Did not add the data to the queue because of the following error: ${err}`))
     }
 }
 
@@ -88,7 +89,7 @@ export async function removeFromQueue(url){
 
     //check if the url is in the queue
     if (!(await isInQueue(url))){
-        logger.info(`Did not remove the following url: ${url}, it is not in the queue`)
+        logger.warn(chalk.yellow(`Did not remove the following url: ${url}, it is not in the queue`))
         return
     }
     
@@ -100,29 +101,10 @@ export async function removeFromQueue(url){
             [url])
 
         //log deleted Data
-        logger.info(`Deleted from queue: ${url}`)
+        logger.info(chalk.gray(`Deleted from queue: ${url}`))
     } catch(err) {
         //log error
-        logger.warn(`Did not deleted the data from the queue because of the following error: ${err}`)
-    }
-}
-
-/**
- * Clears the current queue (e.g. at start of crawler run).
- * @function clearQueue
- */
-export async function clearQueue() {
-    
-    try {
-        //delete data
-        await query(`
-            DELETE FROM stac."urlQueue"`)
-
-        //log deleted Data
-        logger.info(`cleared queue`)
-    } catch(err) {
-        //log error
-        logger.warn(`Did not cleared the queue because of the following error: ${err}`)
+        logger.error(chalk.red(`Did not deleted the data from the queue because of the following error: ${err}`))
     }
 }
 
@@ -149,7 +131,7 @@ export async function isInQueue(url){
         }
 
     } catch(err) {
-        logger.warn(`could not show if data is in queue because of the following error: ${err}`)
+        logger.error(chalk.red(`could not show if data is in queue because of the following error: ${err}`))
     }
 }
 
@@ -170,7 +152,7 @@ export async function initializeQueue() {
         await addToQueue(src.title, src.url, null);
     }
 
-    logger.info(`Initialized queue with ${sources.length} source URLs`);
+    logger.info(chalk.cyan(`Initialized queue with ${sources.length} source URLs`));
 }
 
 /**

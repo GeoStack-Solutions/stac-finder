@@ -18,7 +18,8 @@ const getConformance = async (req, res) => {
                 'http://www.opengis.net/spec/cql2/1.0/conf/advanced-comparison-operators',
                 'http://www.opengis.net/spec/cql2/1.0/conf/temporal-functions',
                 'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/collections',
-                'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core'
+                'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core',
+                'https://api.stacspec.org/v1.1.0/collection-search#sortables'
             ]
         };
 

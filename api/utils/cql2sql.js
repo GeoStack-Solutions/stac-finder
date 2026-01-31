@@ -38,11 +38,54 @@ function astToSql(ast, queryableMap, params) {
       return `${col} ILIKE ${p}`;
     }
 
+            // jsonb_array: match against an object field inside a JSONB array
+    // Example: provider = 'ESA'  ->  EXISTS (... providers[*].name = 'ESA')
+    if (q.type === 'jsonb_array') {
+      const field = q.jsonb_field;
+      if (!field) throw new Error(`jsonb_array requires jsonb_field for ${node.left.name}`);
+
+      const p = nextParam(String(node.right.value));
+      const jsonArr = `COALESCE(${col}, '[]'::jsonb)`;
+
+      const existsExpr = `
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(${jsonArr}) AS elem
+          WHERE elem->>'${field}' = ${p}
+        )
+      `.trim();
+
+      if (op === '=') return existsExpr;
+      if (op === '<>') return `(NOT ${existsExpr})`;
+
+      throw new Error(`${node.op} not supported for ${node.left.name} (type ${q.type})`);
+    }
+
+
+
     // scalar text
     if (q.type === 'text') {
       const p = nextParam(String(node.right.value));
       return `${col} ${op} ${p}`;
     }
+
+        // text_array: treat "=" as "array contains value"
+    if (q.type === 'text_array') {
+      const p = nextParam(String(node.right.value));
+
+      if (op === '=') {
+        // value is contained in array
+        return `${p} = ANY(${col})`;
+      }
+
+      if (op === '<>') {
+        // value is NOT contained in array (also matches NULL arrays)
+        return `NOT (${p} = ANY(${col}))`;
+      }
+
+      throw new Error(`${node.op} not supported for ${node.left.name} (type ${q.type})`);
+    }
+
 
     // timestamps
     if (q.type === 'timestamptz') {
@@ -74,6 +117,22 @@ function astToSql(ast, queryableMap, params) {
     if (q.type === 'text_array') {
       const p = nextParam(values.map(String));
       return `${col} && ${p}::text[]`;
+    }
+
+           if (q.type === 'jsonb_array') {
+      const field = q.jsonb_field;
+      if (!field) throw new Error(`jsonb_array requires jsonb_field for ${node.left.name}`);
+
+      const p = nextParam(values.map(String));
+      const jsonArr = `COALESCE(${col}, '[]'::jsonb)`;
+
+      return `
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(${jsonArr}) AS elem
+          WHERE elem->>'${field}' = ANY(${p}::text[])
+        )
+      `.trim();
     }
 
     throw new Error(`IN not supported for ${node.left.name} (type ${q.type})`);
