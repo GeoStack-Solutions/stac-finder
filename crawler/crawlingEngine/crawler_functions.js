@@ -82,7 +82,18 @@ export function makeHandleSTACObject(deps = {}) {
         getLastCrawledTimestamp: getLastCrawledTimestampFn = getLastCrawledTimestamp,
     } = deps
 
-    return async function handleSTACObjectImpl(STACObject, Link, parentUrl = null) {
+    return async function handleSTACObjectImpl(rawSTACObject, Link, parentUrl = null) {
+
+        let STACObject = rawSTACObject; 
+
+        try {
+            // trying to migrate
+            const result = await normalizeCollection(rawSTACObject, Link);
+            STACObject = result.collection; // succesfully migrated
+        } catch (migrationErr) {
+
+            loggerFn.warn(`Migration failed for ${Link}, continuing with raw object. Error: ${migrationErr.message}`);
+        }
 
         //only run the following code if the stac object is valid
         if (validate(STACObject).valid) {
@@ -246,12 +257,26 @@ export async function crawlStacApi(url, title) {
 
         //Iterate and Save
         for (const collection of collections) {
+
+            let collectionToProcess = collection;
+
+            try {
+                // migrates every collection from API-List
+                const result = await normalizeCollection(collection, url);
+                collectionToProcess = result.collection;
+
+            } catch (err) {
+
+                logger.warn(`Skipping one collection in API ${url} due to migration error: ${err.message}`);
+                continue; 
+            }
             
             // Try to find "self" link, otherwise construct URL
-            const selfLink = collection.links?.find(link => link.rel === 'self');
+            const selfLink = collectionToProcess.links?.find(link => link.rel === 'self');
             
             // Parse API collection to extract metadata and prepare for DB upsert
-            const parsedCollection = parseCollection(collection, sourceId, new Date());
+            const parsedCollection = parseCollection(collectionToProcess, sourceId, new Date());
+            
             if (parsedCollection) {
                 await upsertCollection(parsedCollection);
         }
