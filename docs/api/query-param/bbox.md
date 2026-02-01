@@ -63,6 +63,14 @@ A collection is returned if its `spatial_extent` **intersects** with the query b
 
 ---
 
+## Advanced Spatial Filtering
+
+The standard `bbox` parameter always uses spatial intersection. For advanced spatial operations such as `within`, `contains`, or `overlaps`, use the [CQL2 filtering](cql2-text.md) (`cql2-text` or `cql2-json`).
+
+See the CQL2 documentation for details on spatial operators.
+
+---
+
 ## Examples
 
 ### Example 1: Simple bounding box (Europe)

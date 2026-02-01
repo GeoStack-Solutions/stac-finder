@@ -1,4 +1,7 @@
 import Migrate from '@radiantearth/stac-migrate';
+import { logger } from '../logging/logger.js';
+import chalk from "chalk";
+chalk.level = 3;
 
 /**
  * Normalizes STAC Objects (Collection or Catalog) to the newest STAC Version.
@@ -27,15 +30,13 @@ export async function normalizeCollection(rawData, sourceUrl) {
         // extracts the new STAC version from the migrated object
         const version = migratedObject.stac_version;
 
-
         return {
             collection: migratedObject, // keep the key 'collection' for consistency, even if it is a catalog
             stacVersion: version
         };
 
     } catch (error) {
-        console.warn(`[WARN] Migration failed for ${sourceUrl}: ${error.message}`);
-        // Re-throw the error so the caller knows the migration failed
+        logger.error(chalk.red(`${sourceUrl}:`, error.message));
         throw error;
     }
 }

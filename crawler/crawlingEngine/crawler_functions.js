@@ -3,9 +3,10 @@ import { getSourceIdByUrl, upsertCollection, upsertSource, getLastCrawledTimesta
 import { validateStacObject } from "../validation/json_validator.js"
 import { addToQueue } from "../queueManager/queue_manager.js"
 import { logger } from "../logging/logger.js"
-import { markSourceCrawled } from "../sourceManager/source_manager.js"
 import { parseCollection } from "../handleCollections/CollectionParser.js"
 import { normalizeStacObject } from "../handleCollections/migrator.js"
+import chalk from "chalk";
+chalk.level = 3;
 
 
 const MAX_RETRIES = 3;       // Max attempts
@@ -25,7 +26,7 @@ export async function fetchWithRetry(url, maxRetries = MAX_RETRIES) {
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
         try {
-            logger.info(`Fetching ${url} (attempt ${attempt}/${maxRetries})`);
+            logger.info(chalk.gray(`Fetching ${url} (attempt ${attempt}/${maxRetries})`));
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
 
@@ -52,10 +53,10 @@ export async function fetchWithRetry(url, maxRetries = MAX_RETRIES) {
                 throw new Error("Fatal: Timeout of 15s reached - Will not retry to save time.");
             }
             if (error.message.includes("Fatal")) throw error;
-            logger.warn(`Attempt ${attempt} failed for ${url}: ${error.message}`);
+            logger.warn(chalk.yellow(`Attempt ${attempt} failed for ${url}: ${error.message}`));
             if (attempt === maxRetries) throw new Error(`Failed after ${maxRetries} attempts: ${error.message}`);
             const delay = RETRY_DELAY_MS * attempt;
-            logger.info(`Waiting ${delay}ms before next retry...`);
+            logger.info(chalk.gray(`Waiting ${delay}ms before next retry...`));
             await new Promise((resolve) => setTimeout(resolve, delay));
         }
     }
@@ -234,7 +235,7 @@ export function getChildURLs(STACObject, Link) {
  * @param {title} - title of the api
  */
 export async function crawlStacApi(url, title) {
-    logger.info(`Starting API Crawl for: ${url}`);
+    logger.info(chalk.gray(`Starting API Crawl for: ${url}`));
 
     try {
         // Prepare URL: Append "/collections" to the base URL
@@ -247,7 +248,7 @@ export async function crawlStacApi(url, title) {
         // APIs usually return { "collections": [...] }
         const collections = data.collections || [];
 
-        logger.info(`Found ${collections.length} collections in API ${url}`);
+        logger.info(chalk.gray(`Found ${collections.length} collections in API ${url}`));
 
         // Ensure API source exists in database and get its ID
         const sourceId = await upsertSource({
@@ -283,9 +284,9 @@ export async function crawlStacApi(url, title) {
         }
         }
 
-        logger.info(`Finished API Crawl for ${url}`);
+        logger.info(chalk.gray(`Finished API Crawl for ${url}`));
 
     } catch (error) {
-        logger.error(`API Crawl failed for ${url}: ${error.message}`);
+        logger.error(chalk.red(`API Crawl failed for ${url}: ${error.message}`));
     }
 }

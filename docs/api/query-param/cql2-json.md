@@ -64,6 +64,28 @@ The following fields can be used in CQL2-json filter expressions.
 
 ## Supported Operators
 
+
+### Spatial Operators
+
+Spatial operators allow advanced spatial filtering on geometry fields (e.g., `spatial_extent`). Supported operators:
+
+| Operator         | Description                                 |
+|------------------|---------------------------------------------|
+| `s_intersects`   | Intersects (default for bbox)               |
+| `s_within`       | Geometry is within the bbox                 |
+| `s_contains`     | Geometry contains the bbox                  |
+| `s_overlaps`     | Geometry overlaps the bbox                  |
+
+**Example:**
+```json
+{
+  "op": "s_within",
+  "args": [
+    { "property": "spatial_extent" },
+    { "type": "BBox", "value": [5.8, 47.2, 15.0, 55.1] }
+  ]
+}
+```
 ### Logical Operators
 
 | Operator | Description |
@@ -81,7 +103,7 @@ Supported for scalar fields (`id`, `title`, `description`, `license`, `doi`):
 | Operator | Description |
 |---------|-------------|
 | `=` | Equality |
-| `!=` | Inequality |
+| `<>` | Inequality |
 | `<` | Less than (timestamps only) |
 | `>` | Greater than (timestamps only) |
 | `like` | Case-insensitive pattern matching |

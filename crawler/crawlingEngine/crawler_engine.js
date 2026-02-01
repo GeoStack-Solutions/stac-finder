@@ -19,6 +19,8 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { normalizeCollection } from "../migrator.js";
+import chalk from "chalk";
+chalk.level = 3;
 
 // Resolve backup file path relative to this module
 const __filename = fileURLToPath(import.meta.url)
@@ -41,14 +43,14 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 */
 export async function startCrawler() {
 
-    logger.info("Crawler started");
+    logger.info(chalk.cyan("Crawler started"));
 
     //if there is any backup data
     if (fs.existsSync(backupFilePath)) {
         //get the backupData
         let queueBackupCopy = JSON.parse(fs.readFileSync(backupFilePath))
 
-        logger.info(`Found ${queueBackupCopy.urls.length} URL's in the backup file.`)
+        logger.info(chalk.cyan(`Found ${queueBackupCopy.urls.length} URL's in the backup file.`))
 
         //validate the backup data
         for (let i = queueBackupCopy.urls.length - 1; i >= 0; i--) {
@@ -62,7 +64,7 @@ export async function startCrawler() {
                 queueBackupCopy.urls.splice(i, 1)
                 queueBackupCopy.parentUrls.splice(i, 1)
 
-                logger.info("removed one invalid URL")
+                logger.warn(chalk.yellow("Removed one invalid URL"))
             }
         }
 
@@ -71,7 +73,7 @@ export async function startCrawler() {
         //Remove the backup file
         fs.unlinkSync(backupFilePath)
 
-        logger.info("Removed the backup file")
+        logger.info(chalk.cyan("Removed the backup file"))
     }
 
     //reset the url Data
@@ -81,7 +83,7 @@ export async function startCrawler() {
     // Only load sources that have never been crawled or were last crawled more than 7 days ago
     const sources = await loadSourcesForCrawling(7);
     
-    logger.info(`Found ${sources.length} sources to process.`);
+    logger.info(chalk.cyan(`Found ${sources.length} sources to process.`));
 
     for (const source of sources) {
         //validate data
@@ -102,7 +104,7 @@ export async function startCrawler() {
         await addToQueue(urlData.titles, urlData.urls, urlData.parentUrls);
 
     } else {
-        logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls you want to add to the queue.`)
+        logger.error(chalk.red(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls you want to add to the queue.`))
         throw err
     }
 
@@ -154,17 +156,17 @@ export async function startCrawler() {
             //add the data to the queue
             await addToQueue(urlData.titles, urlData.urls, urlData.parentUrls)
 
-            logger.info("Added URL's from the STAC Index Database to the queue")
+            logger.info(chalk.cyan("Added URL's from the STAC Index Database to the queue"))
 
         } else {
-            logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls you want to add to the queue.`)
+            logger.error(chalk.red(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls you want to add to the queue.`))
             throw err
         }
 
         resetUrlData()
 
     } catch (err) {
-        logger.error("Could not load STAC Index data, starting with existing queue only.");
+        logger.error(chalk.red(`Could not load STAC Index data because of the following error: ${err}.`));
     }
 
     // Continue crawling until no URLs remain in queue
@@ -180,14 +182,13 @@ export async function startCrawler() {
             const STACObject = await fetchWithRetry(url)
 
 
-            logger.info(`Crawling: ${url}`);
+            logger.info(chalk.gray(`Crawling: ${url}`));
 
             //validate the stac Object
             let valid = validateStacObject(STACObject).valid
-            let notIgnored = !validateStacObject(STACObject).isIgnored
             
             // Only proceed if valid JSON was retrieved
-            if (valid && notIgnored) {
+            if (valid) {
 
                 //for Catalogs: get the child data and save the catalog data in the sources db
                 //for Collections: get the child data, save the collection data in the collections and the sources db
@@ -206,18 +207,18 @@ export async function startCrawler() {
                 }
 
             } else {
-                    logger.warn("Warning: Invalid STAC object")
+                    logger.warn(chalk.yellow("Invalid STAC object"))
             }
             
         } catch(err) {
-            logger.warn(`Warning: Did not crawled the following url: ${url} because of the following error: ${err}`)
+            logger.error(chalk.red(`Did not crawled the following url: ${url} because of the following error: ${err}`))
         }
 
         if (urlData.urls.length != urlData.titles.length || urlData.urls.length != urlData.parentUrls.length) {
-            logger.error(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls and 
-                ${urlData.parentUrls.length} parent urls you want to add to the queue.`)
+            logger.error(chalk.red(`There are ${urlData.titles.length} titles but ${urlData.urls.length} urls and 
+                ${urlData.parentUrls.length} parent urls you want to add to the queue.`))
         }
-        
+
         if (urlData.urls.length >= 1000 || !await hasNextUrl()) {
 
             //add the data to the queue
@@ -231,5 +232,5 @@ export async function startCrawler() {
         await removeFromQueue(url);
     }
 
-    logger.info("Crawling finished");
+    logger.info(chalk.cyan("Crawling finished"));
 }

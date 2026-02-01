@@ -10,15 +10,13 @@ const queryableMap = require('../utils/queryableMap');
 const getCollections = async (req, res) => {
   try {
     let sql =
-      'SELECT c.id, c.title, c.description, c.keywords, c.license, ' +
-      'c.temporal_start, c.temporal_end, c.providers, ' +
-      'c.doi, c.platform_summary, c.constellation_summary, c.gsd_summary, c.processing_level_summary, ' + 
-      '(SELECT url FROM test.sources WHERE id = c.source_id) AS source_url, ' +
+      'SELECT c.*, ' +
+      '(SELECT url FROM stac.sources WHERE id = c.source_id) AS source_url, ' +
       'ST_AsGeoJSON(c.spatial_extent)::json as spatial_extent ' +
-      'FROM test.collections c';
+      'FROM stac.collections c';
 
     // For numberMatched: build a separate COUNT(*) query with the same WHERE conditions
-    let countSql = 'SELECT COUNT(*) FROM test.collections c';
+    let countSql = 'SELECT COUNT(*) FROM stac.collections c';
 
     const queryParams = [];
     const whereParts = [];
@@ -40,11 +38,13 @@ const getCollections = async (req, res) => {
 
     // --- CQL2 filter (filter=...) ---
     const { whereClause: cqlWhere, error: cqlError } = parseCql2Filter(
-      req.query.filter,
-      req.query['filter-lang'],
-      queryParams
-    );
+  req.query.filter,
+  req.query['filter-lang'],
+  queryParams,
+  queryableMap
+);
 
+    
     if (cqlError) {
       return res.status(cqlError.status).json({ error: cqlError.error, message: cqlError.message });
     }
@@ -170,6 +170,14 @@ const getCollections = async (req, res) => {
         if (val.length > 0 && val[0] != null && val[0] !== '') summaries['processing:level'] = val;
       }
 
+      // Parse extensions
+      let extensions = [];
+      if (row.stac_extensions && typeof row.stac_extensions === 'string') {
+        extensions = row.stac_extensions.replace(/[{}]/g, '').split(',').filter(e => e);
+      } else if (Array.isArray(row.stac_extensions)) {
+        extensions = row.stac_extensions;
+      }
+
       return {
         stac_version: '1.0.0',
         type: 'Collection',
@@ -183,6 +191,7 @@ const getCollections = async (req, res) => {
         license: row.license,
         keywords: row.keywords,
         providers: row.providers && Array.isArray(row.providers) ? row.providers : [],
+        ...(extensions.length > 0 ? { extensions } : {}),
         ...(Object.keys(summaries).length > 0 ? { summaries } : {}),
         links: [
           { rel: 'self', 
@@ -250,8 +259,8 @@ const getCollectionById = async (req, res) => {
         ST_YMin(c.spatial_extent) as ymin, 
         ST_XMax(c.spatial_extent) as xmax, 
         ST_YMax(c.spatial_extent) as ymax 
-      FROM test.collections c
-      LEFT JOIN test.sources s ON c.source_id = s.id
+      FROM stac.collections c
+      LEFT JOIN stac.sources s ON c.source_id = s.id
       WHERE c.id = $1
     `;
 
@@ -291,6 +300,14 @@ const getCollectionById = async (req, res) => {
       if (val.length > 0 && val[0] != null && val[0] !== '') summaries['processing:level'] = val;
     }
 
+    // Parse extensions
+    let extensions = [];
+    if (row.stac_extensions && typeof row.stac_extensions === 'string') {
+      extensions = row.stac_extensions.replace(/[{}]/g, '').split(',').filter(e => e);
+    } else if (Array.isArray(row.stac_extensions)) {
+      extensions = row.stac_extensions;
+    }
+
     const collection = {
       stac_version: '1.0.0',
       type: 'Collection',
@@ -309,6 +326,7 @@ const getCollectionById = async (req, res) => {
       license: row.license,
       keywords: row.keywords,
       providers: row.providers && Array.isArray(row.providers) ? row.providers : [],
+      ...(extensions.length > 0 ? { extensions } : {}),
       ...(Object.keys(summaries).length > 0 ? { summaries } : {}),
       links: [
         {
