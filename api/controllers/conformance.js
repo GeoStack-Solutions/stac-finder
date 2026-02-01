@@ -1,4 +1,6 @@
-const getConformance = async (req, res) => {
+const { logger } = require('../middleware/logger');
+
+const getConformance = async (req, res, next) => {
     try {
         const conformance = {
             conformsTo: [
@@ -24,11 +26,9 @@ const getConformance = async (req, res) => {
         };
 
         res.json(conformance);
-    } catch (error) {
-        res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to generate conformance declaration'
-        });
+    } catch (err) {
+        logger.error('Error fetching conformance', { error: err.message, stack: err.stack });
+        return next(err);
     }
 };
 
