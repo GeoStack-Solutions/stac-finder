@@ -18,7 +18,7 @@ import { isInSources } from "../sourceManager/source_manager.js";
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
-import { normalizeCollection } from "./migrator.js";
+import { normalizeStacObject } from "./migrator.js";
 import chalk from "chalk";
 chalk.level = 3;
 
