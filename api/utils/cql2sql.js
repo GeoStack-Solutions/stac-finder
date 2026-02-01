@@ -29,13 +29,26 @@ function astToSql(ast, queryableMap, params) {
         : node.op;
 
 
-    // LIKE only for text
+    // LIKE for text and text_array
     if (node.op === 'LIKE') {
-      if (q.type !== 'text') {
-        throw new Error(`LIKE not supported for ${node.left.name}`);
-      }
       const p = nextParam(String(node.right.value));
-      return `${col} ILIKE ${p}`;
+
+      if (q.type === 'text') {
+        return `${col} ILIKE ${p}`;
+      }
+
+      if (q.type === 'text_array') {
+        // match if ANY array element matches the pattern
+        return `
+          EXISTS (
+            SELECT 1
+            FROM unnest(${col}) AS kw
+            WHERE kw ILIKE ${p}
+          )
+        `.trim();
+      }
+
+      throw new Error(`LIKE not supported for ${node.left.name}`);
     }
 
     // jsonb_array: match against an object field inside a JSONB array
@@ -91,6 +104,16 @@ function astToSql(ast, queryableMap, params) {
     if (q.type === 'timestamptz') {
       const p = nextParam(String(node.right.value));
       return `${col} ${op} ${p}::timestamptz`;
+    }
+
+    // numeric (gsd)
+    if (q.type === 'numeric') {
+      const value = Number(node.right.value);
+      if (Number.isNaN(value)) {
+        throw new Error(`Invalid numeric value for ${node.left.name}`);
+      }
+      const p = nextParam(value);
+      return `${col} ${op} ${p}::numeric`;
     }
 
     throw new Error(`${node.op} not supported for ${node.left.name} (type ${q.type})`);
