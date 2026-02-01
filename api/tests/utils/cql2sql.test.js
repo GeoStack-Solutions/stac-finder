@@ -1,6 +1,6 @@
-const { parseCql2 } = require('../cql2parser');
-const { astToSql } = require('../cql2sql');
-const queryableMap = require('../queryableMap');
+const { parseCql2 } = require('../../utils/cql2parser');
+const { astToSql } = require('../../utils/cql2sql');
+const queryableMap = require('../../utils/queryableMap');
 
 test('LIKE on title', () => {
   const params = [];
@@ -67,22 +67,12 @@ test('AND has higher precedence than OR (or parentheses are preserved)', () => {
   expect(params.length).toBe(3);
 });
 
-test('AND has higher precedence than OR (or parentheses are preserved)', () => {
-  const params = [];
-  const ast = parseCql2("license = 'a' OR license = 'b' AND title LIKE '%S%'");
-  const where = astToSql(ast, queryableMap, params);
-
-  expect(where).toContain('OR');
-  expect(where).toContain('AND');
-  expect(params.length).toBe(3);
-});
-
 test('not equals', () => {
   const params = [];
   const ast = parseCql2("license != 'proprietary'");
   const where = astToSql(ast, queryableMap, params);
 
-  expect(where).toContain('license <> $1'); // oder != je nach Implementierung
+  expect(where).toContain('license <> $1');
   expect(params).toEqual(['proprietary']);
 });
 
