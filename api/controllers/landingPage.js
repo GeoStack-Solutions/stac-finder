@@ -1,4 +1,6 @@
-const getLandingPage = async (req, res) => {
+const { logger } = require('../middleware/logger');
+
+const getLandingPage = async (req, res, next) => {
     try {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
 
@@ -79,11 +81,9 @@ const getLandingPage = async (req, res) => {
         };
 
         res.json(landingPage);
-    } catch (error) {
-        res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to generate landing page'
-        });
+    } catch (err) {
+        logger.error('Error generating landing page', { error: err.message, stack: err.stack });
+        return next(err);
     }
 };
 

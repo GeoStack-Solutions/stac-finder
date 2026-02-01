@@ -1,4 +1,6 @@
-const getSortables = async (req, res) => {
+const { logger } = require('../middleware/logger');
+
+const getSortables = async (req, res, next) => {
     try {
         res.type('application/schema+json');
 
@@ -45,11 +47,9 @@ const getSortables = async (req, res) => {
         };
 
         res.json(sortablesSchema);
-    } catch (error) {
-        res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to generate sortables'
-        });
+    } catch (err) {
+        logger.error('Error generating sortables', { error: err.message, stack: err.stack });
+        return next(err);
     }
 };
 

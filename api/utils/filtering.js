@@ -349,6 +349,7 @@ const cql2JsonToAst = (node) => {
 
     // NOT
     if (op === 'NOT') {
+      if (args.length !== 1) throw new Error('NOT requires 1 arg');
       return { type: 'Not', expr: cql2JsonToAst(args[0]) };
     }
 
@@ -384,7 +385,7 @@ const cql2JsonToAst = (node) => {
     }
 
     // LIKE and comparisons: args: [ {property}, literal ]
-    const compareOps = ['=', '!=', '<', '>', 'LIKE'];
+    const compareOps = ['=', '!=', '<>', '<', '>', 'LIKE'];
     if (compareOps.includes(op)) {
       if (args.length !== 2) throw new Error(`${op} requires 2 args`);
       return {
