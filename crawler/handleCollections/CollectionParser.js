@@ -51,7 +51,7 @@ export function parseCollection(json, sourceId, crawledAt) {
         // Search Fields
         keywords: json.keywords || [],
         providers: toArray(json.providers),
-        license: json.license || null,
+        license: safeLicense || null,
         doi: json['sci:doi'] || json.doi || null,
 
         // Summaries
