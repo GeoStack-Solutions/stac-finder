@@ -184,7 +184,7 @@ export async function initializeQueue() {
 export async function getNextUrlFromDB() {
     const result = await query(`
         Select * FROM stac."urlQueue"
-        ORDER BY id ASC
+        ORDER BY RANDOM
         LIMIT 1;
         `);
 

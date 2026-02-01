@@ -5,6 +5,7 @@ import { addToQueue } from "../queueManager/queue_manager.js"
 import { logger } from "../logging/logger.js"
 import { markSourceCrawled } from "../sourceManager/source_manager.js"
 import { parseCollection } from "../handleCollections/CollectionParser.js"
+import { normalizeStacObject } from "../handleCollections/migrator.js"
 
 
 const MAX_RETRIES = 3;       // Max attempts
@@ -88,7 +89,7 @@ export function makeHandleSTACObject(deps = {}) {
 
         try {
             // trying to migrate
-            const result = await normalizeCollection(rawSTACObject, Link);
+            const result = await normalizeStacObject(rawSTACObject, Link);
             STACObject = result.collection; // succesfully migrated
         } catch (migrationErr) {
 
@@ -262,7 +263,7 @@ export async function crawlStacApi(url, title) {
 
             try {
                 // migrates every collection from API-List
-                const result = await normalizeCollection(collection, url);
+                const result = await normalizeStacObject(collection, url);
                 collectionToProcess = result.collection;
 
             } catch (err) {
