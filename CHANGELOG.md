@@ -48,7 +48,33 @@ First stable release of STACFinder - A central platform for searching and explor
 
 #### Crawler Features
 
-...
+**Core Crawling**
+- Startet den Crawl‑Prozess und verarbeitet Quellen nach Typ (API/Static)
+- Rekursives Crawling von STAC Catalogs/Collections
+- Polite Delay zwischen Requests
+
+**Queue Management**
+- Persistente URL‑Queue in der Datenbank
+- Duplikat‑Erkennung und Bereinigung
+- Backup/Restore der Queue bei Abbruch
+
+**STAC API Support**
+- Direkter Crawl über `/collections`
+- Retry‑Strategie mit Backoff
+- Fehlerbehandlung für ungültige/unerreichbare Endpoints
+
+**Database Integration**
+- Speichern von Quellen und Collections
+- Upserts zur Vermeidung von Duplikaten
+- Zeitbasierte Auswahl von Quellen (z. B. „älter als N Tage“)
+
+**Logging & Monitoring**
+- Strukturierte Logs (Start, Fortschritt, Fehler)
+- Zusammenfassung gefundener Collections
+
+**Developer Experience**
+- Docker‑Support
+- Environment‑basierte Konfiguration
 
 #### Web-UI Features
 
