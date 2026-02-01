@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const { logger } = require('../middleware/logger');
 
-const getOpenAPI = async (req, res) => {
+const getOpenAPI = async (req, res, next) => {
     try {
         const openapiPath = path.join(__dirname, '../../docs/api/openapi.json');
         
@@ -29,11 +30,9 @@ const getOpenAPI = async (req, res) => {
         // Set appropriate content type
         res.setHeader('Content-Type', 'application/vnd.oai.openapi+json;version=3.0');
         res.json(openapi);
-    } catch (error) {
-        res.status(500).json({
-            error: 'Internal Server Error',
-            message: 'Failed to load OpenAPI specification'
-        });
+    } catch (err) {
+        logger.error('Error loading OpenAPI specification', { error: err.message, stack: err.stack });
+        return next(err);
     }
 };
 

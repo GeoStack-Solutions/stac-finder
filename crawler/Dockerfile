@@ -16,4 +16,4 @@ COPY . .
 
 # Start the crawler
 WORKDIR /app/crawler
-CMD ["node", "STACFinderCrawler.js"]
+CMD ["node", "STACCrawler.config.cjs"]

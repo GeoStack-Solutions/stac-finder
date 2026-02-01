@@ -9,7 +9,8 @@ services:
     env_file:
       - ./crawler/.env
     volumes:
-      - ./crawler:/app/crawler # delete for production
+      - ./crawler:/app/crawler/ # delete for production
+      - /app/crawler/node_modules
       - ./crawler/logs:/app/crawler/logs
     depends_on:
       - api

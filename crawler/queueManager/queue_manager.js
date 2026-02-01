@@ -10,7 +10,8 @@ import { loadUncrawledSources } from "../sourceManager/source_manager.js"
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
-import chalk from "chalk"
+import chalk from "chalk";
+chalk.level = 3;
 
 // Resolve backup file path relative to this module
 const __filename = fileURLToPath(import.meta.url)
@@ -166,7 +167,7 @@ export async function initializeQueue() {
 export async function getNextUrlFromDB() {
     const result = await query(`
         Select * FROM stac."urlQueue"
-        ORDER BY id ASC
+        ORDER BY RANDOM()
         LIMIT 1;
         `);
 

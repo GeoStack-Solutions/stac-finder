@@ -76,6 +76,40 @@ CREATE TABLE IF NOT EXISTS stac.collections (
     source_id integer REFERENCES stac.sources(id) ON DELETE SET NULL,
     last_crawled_timestamp timestamptz DEFAULT now()
 );
+
+-- Create indexes for performance optimization
+-- See docs/database/indexes.md for detailed documentation
+
+-- Sources indexes
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sources_url ON stac.sources(url);
+CREATE INDEX IF NOT EXISTS idx_sources_last_crawled_timestamp ON stac.sources(last_crawled_timestamp);
+CREATE INDEX IF NOT EXISTS idx_sources_type ON stac.sources(type);
+CREATE INDEX IF NOT EXISTS idx_sources_type_crawled ON stac.sources(type, last_crawled_timestamp);
+
+-- Collections indexes (Basic)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_id ON stac.collections(id);
+CREATE INDEX IF NOT EXISTS idx_collections_source_id ON stac.collections(source_id);
+CREATE INDEX IF NOT EXISTS idx_collections_title ON stac.collections(title);
+CREATE INDEX IF NOT EXISTS idx_collections_last_crawled_timestamp ON stac.collections(last_crawled_timestamp);
+
+-- Collections indexes (Spatial/Temporal)
+CREATE INDEX IF NOT EXISTS idx_collections_spatial_extent ON stac.collections USING GIST(spatial_extent);
+CREATE INDEX IF NOT EXISTS idx_collections_temporal_start ON stac.collections(temporal_start);
+CREATE INDEX IF NOT EXISTS idx_collections_temporal_end ON stac.collections(temporal_end);
+
+-- Collections indexes (Text/Array Search)
+CREATE INDEX IF NOT EXISTS idx_collections_keywords_gin ON stac.collections USING GIN(keywords);
+CREATE INDEX IF NOT EXISTS idx_collections_platform_gin ON stac.collections USING GIN(platform_summary);
+CREATE INDEX IF NOT EXISTS idx_collections_constellation_gin ON stac.collections USING GIN(constellation_summary);
+CREATE INDEX IF NOT EXISTS idx_collections_description_gin ON stac.collections USING GIN(to_tsvector('english', description));
+CREATE INDEX IF NOT EXISTS idx_collections_title_gin ON stac.collections USING GIN(to_tsvector('english', title));
+
+-- Collections indexes (Composite)
+CREATE INDEX IF NOT EXISTS idx_collections_source_crawled ON stac.collections(source_id, last_crawled_timestamp);
+
+-- Analyze tables after index creation
+ANALYZE stac.sources;
+ANALYZE stac.collections;
 ```
 
 ## User and Permission Management
