@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { logger } = require('../middleware/logger');
 
 const db = require('../db'); // liegt unter /api/db/index.js
 
@@ -24,7 +25,7 @@ router.get('/', async (req, res) => {
       timestamp
     });
   } catch (err) {
-    console.error('Health check failed:', err);
+    logger.error('Health check failed', { error: err.message, stack: err.stack, target });
 
     return res.status(503).json({
       status: 'degraded',

@@ -1,8 +1,9 @@
 
 const db = require('../db');
 const path = require('path');
+const { logger } = require('../middleware/logger');
 
-const getQueryables = async (req, res) => {
+const getQueryables = async (req, res, next) => {
     try {
         res.type('application/schema+json');
 
@@ -123,8 +124,8 @@ const getQueryables = async (req, res) => {
 
         return res.json(queryables);
     } catch (err) {
-        console.error('Error fetching queryables: ', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        logger.error('Error fetching queryables', { error: err.message, stack: err.stack });
+        return next(err);
     }
 };
 
