@@ -25,6 +25,12 @@ export function parseCollection(json, sourceId, crawledAt) {
     if (typeof safeId === 'string') {
         safeId = safeId.replace(/\//g, '_');
     }
+
+    // Replace spaces with underscores in the license
+    let safeLicense = json.license;
+    if (typeof safeLicense === 'string') {
+        safeLicense = safeLicense.replace(/ /g, '_');
+    }
     
     // Return the structured metadata object
     return {
