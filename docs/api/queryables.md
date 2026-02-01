@@ -2,7 +2,10 @@
 
 ## Overview
 
-The `/collections/queryables` endpoint provides a JSON Schema describing all fields that can be used to filter STAC Collections. This follows the STAC API Collection Search Extension and allows clients to discover which properties are available for querying, including dynamic enum values directly sourced from the database.
+The `/collections/queryables` endpoint provides a JSON Schema describing all fields that can be used to filter STAC Collections via the Collection Search API.  
+It follows the STAC API – Collection Search and Queryables specifications and allows clients (e.g. the Web UI) to discover which properties are filterable and how they are interpreted.
+
+Enum values for several fields are **dynamically derived from the database**, ensuring that the available filter options always reflect the current data.
 
 **Endpoint:**
 - `GET /collections/queryables` — Returns the schema of filterable fields
@@ -11,11 +14,11 @@ The `/collections/queryables` endpoint provides a JSON Schema describing all fie
 
 ## GET /collections/queryables
 
-Returns a Queryables object describing all fields available for filtering collections. Enum values for `platform`, `processingLevel`, `constellation`, `gsd`, and `provider` are dynamically derived from the database and always reflect the current data.
+Returns a Queryables object describing all fields available for filtering collections.  
+Enum values for `license`, `platform`, `processingLevel`, `constellation` and `provider` are dynamically derived from the database.
 
 ### Request
-
-```
+```http
 GET /collections/queryables
 ```
 
@@ -25,36 +28,114 @@ This endpoint does not accept any query parameters.
 
 ### Response
 
-Returns a JSON object conforming to the Queryables specification. The response includes all filterable properties, their types, and—where applicable—dynamic enum values.
+Returns a JSON object conforming to the OGC Queryables specification (JSON Schema).  
+The response lists all filterable properties, their data types, and—where applicable—dynamic enum values.
 
-**Queryable Properties:**
+### Queryable Properties
 
-| Property           | Type           | Description                                         | Example Usage                                 | Enum Values           |
-|--------------------|----------------|-----------------------------------------------------|------------------------------------------------|-----------------------|
-| `title`            | string         | Collection title for free-text search                | Used with `q` parameter                        | -                     |
-| `description`      | string         | Collection description for free-text search          | Used with `q` parameter                        | -                     |
-| `license`          | string         | Data license identifier                             | `license = 'CC-BY-4.0'`                        | -                     |
-| `doi`              | string         | Digital Object Identifier                           | `doi = '10.1234/abc'`                          | -                     |
-| `platform`         | string         | Platform name (dynamic, from DB)                    | `platform = 'Sentinel-2A'`                     | Dynamic from DB        |
-| `processingLevel`  | string         | Processing level (dynamic, from DB)                 | `processingLevel = 'L2A'`                      | Dynamic from DB        |
-| `gsd`              | number         | Ground Sampling Distance (dynamic, from DB, numeric)| `gsd = 10`                                     | Dynamic from DB        |
-| `provider`         | string         | Data provider name (dynamic, from DB)               | `provider = 'DLR'`                             | Dynamic from DB        |
-| `constellation`     | string         | Satellitenkonstellation (dynamic, from DB)          | `constellation = 'sentinel-2'`                 | Dynamic from DB        |
-| `temporal_start`   | string (date-time) | Start of temporal extent                        | `temporal_start >= '2020-01-01T00:00:00Z'`     | -                     |
-| `temporal_end`     | string (date-time) | End of temporal extent (nullable)               | `temporal_end <= '2022-12-31T23:59:59Z'`       | -                     |
-| `spatial_extent`   | geometry-any   | Geometry for spatial filtering                      | Used with `bbox` parameter                      | -                     |
+| Property | Type | Description | Example Usage | Enum Values |
+|----------|------|-------------|---------------|-------------|
+| `title` | string | Collection title | `title LIKE '%Sentinel%'` | – |
+| `description` | string | Collection description | `description LIKE '%atmosphere%'` | – |
+| `license` | string | Data license identifier | `license = 'CC-BY-4.0'` | Dynamic (DB) |
+| `doi` | string | Digital Object Identifier | `doi = '10.1234/example'` | – |
+| `platform` | string | Platform name (array-backed) | `platform = 'Sentinel-2'` | Dynamic (DB) |
+| `processingLevel` | string | Processing level (array-backed) | `processingLevel = 'L2A'` | Dynamic (DB) |
+| `constellation` | string | Satellite constellation (array-backed) | `constellation = 'Sentinel'` | Dynamic (DB) |
+| `keywords` | string | Keyword tag (array-backed) | `keywords = 'Atmosphere'` | |
+| `provider` | string | Data provider name (JSONB-backed) | `provider = 'ESA'` | Dynamic (DB) |
+| `temporal_start` | string (date-time) | Start of temporal extent | `temporal_start >= '2020-01-01T00:00:00Z'` | – |
+| `temporal_end` | string (date-time) | End of temporal extent | `temporal_end <= '2022-12-31T23:59:59Z'` | – |
+
+### Semantics of Array-Backed Fields
+
+The properties `platform`, `processingLevel` and `constellation` are backed by PostgreSQL `text[]` columns.  
+For these fields, the following semantics apply:
+
+**`=`**  
+Matches collections where the array contains the given value.
+```
+platform = 'Sentinel-2'
+```
+
+**`!=`**  
+Matches collections where the array does not contain the given value.
+
+**`IN (...)`**  
+Matches collections where the array contains at least one of the given values.
+```
+keywords IN ('Atmosphere', 'CO')
+```
+
+This behavior corresponds to array membership, not exact array equality.
+
+### Provider Filtering Semantics
+
+The `provider` queryable is a virtual field backed by the JSONB column `providers`.  
+Filtering is applied to:
+- `providers[*].name`
+
+**Semantics:**
+```
+provider = 'ESA'
+```
+Matches all collections that have at least one provider with name `ESA`.  
+Collections may still contain additional providers.
+
+This behavior is intentional and reflects the fact that collections can have multiple providers.
+
+### Spatial Filtering
+
+Spatial filtering is supported via the standard `bbox` query parameter on `/collections`.  
+The `spatial_extent` geometry is **not** filtered via CQL2.
+
+Bounding box filtering is handled independently using:
+```
+bbox=minX,minY,maxX,maxY
+```
+
+### Temporal Filtering
+
+Temporal filtering can be performed using either:
+
+**CQL2 filters:**
+```
+temporal_start >= '2020-01-01T00:00:00Z'
+temporal_end <= '2022-12-31T23:59:59Z'
+```
+
+**Or the `datetime` parameter**  
+(as defined by the STAC Collection Search specification).
+
+### Dynamic Enum Values
+
+The following fields expose dynamic enum values derived from the database:
+- `license`
+- `platform`
+- `processingLevel`
+- `constellation`
+- `provider`
+
+This ensures:
+- The UI always presents valid filter options
+- The queryables schema stays in sync with the stored metadata
+
+---
+
+## Examples
 
 ### Example: Retrieve Queryables Schema
-
 ```bash
 curl "http://localhost:4000/collections/queryables"
 ```
-Returns the complete queryables schema as JSON.
+Returns the full JSON Schema describing all filterable fields.
 
-### Error Responses
+---
 
-#### 500 Internal Server Error
-Returned when a server error occurs.
+## Error Responses
+
+### 500 Internal Server Error
+Returned if the queryables schema cannot be generated.
 ```json
 {
   "error": "Internal server error"
@@ -63,42 +144,12 @@ Returned when a server error occurs.
 
 ---
 
-## Using Queryables for Filtering
+## OGC / STAC Conformance Notes
 
-The queryables schema describes which fields can be used with the following query parameters on `/collections`:
-
-### Free-text Search (`q`)
-Searches across these fields:
-- `title`
-- `description`
-
-### CQL2 Filtering (`filter`)
-All properties listed in the queryables response can be used in CQL2 filter expressions:
-
-**String filters:**
-```
-filter=license='CC-BY-4.0'
-filter=title LIKE '%Sentinel%'
-```
-
-**Spatial filters:**
-Use the `bbox` parameter (corresponds to `spatial_extent` queryable).
-
-**Temporal filters:**
-Use the `datetime` parameter (corresponds to `temporal_start` and `temporal_end` queryables).
-
----
-
-## Dynamic Enum Values
-
-The fields `platform`, `processingLevel`, `constellation`, `gsd`, and `provider` have their possible values (enums) dynamically derived from the current database content. This ensures that filter options always reflect the available data. The API response and JSON Schema are updated accordingly.
-
-## OGC Conformance
-
-This endpoint is designed to be compliant with OGC API standards for feature filtering and queryable properties:
-
-- Returns a Queryables object with `type: "object"`
-- Provides JSON Schema definitions for all filterable properties
-- Includes dynamic enum values for relevant fields (sourced from the database)
-- Describes both simple (string, number) and complex (object, geometry) properties
-- Enables discovery of all available filter fields before querying
+This endpoint:
+- Returns a valid Queryables JSON Schema (`type: object`)
+- Accurately documents all supported filterable fields
+- Uses dynamic enums sourced from the database
+- Clearly distinguishes between scalar, array-backed, and JSONB-backed fields
+- Aligns UI filter options with actual backend filter semantics
+- Avoids advertising unsupported CQL2 spatial filters

@@ -24,6 +24,6 @@ Shows Problems during the crawling process. These Problems could be invalid STAC
 ### Errors
 {timestamp} error: ...
 
-Shows serious Problems during the crawling process. Better stop the crawling process, as these errors often lead to a data loss, so that the affected collections can no longer be found later via the STACFinder. Depending on the error message, restart the crawling process or contact us if you experience persistent errors.
+Shows serious Problems during the crawling process. Better stop the crawling process if the errors appear often, as these often lead to a data loss, so that the affected collections can no longer be found later via the STACFinder. Depending on the error message, restart the crawling process or contact us if you experience persistent errors.
 
 *Colour*: red

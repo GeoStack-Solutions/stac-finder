@@ -5,6 +5,7 @@
 ### API Endpoints
 - [Collections](api/collections.md)
 - [Queryables](api/queryables.md)
+- [Sortables](api/sortables.md)
 - [Health](api/health.md)
 
 #### Query Parameters

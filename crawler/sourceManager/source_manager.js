@@ -7,6 +7,7 @@
 import { logger } from '../logging/logger.js'
 import { query } from '../data_management/db_client.js'
 import { validateSource } from '../validation/source_validator.js'
+import chalk from "chalk"
 
 //functions
 
@@ -28,11 +29,11 @@ export async function loadSources() {
             FROM stac.sources;
         `)
 
-        logger.info(`Loaded ${result.rows.length} sources from database.`)
+        logger.info(chalk.cyan(`Loaded ${result.rows.length} sources from database.`))
         return result.rows
 
     } catch (error) {
-        logger.error("Error loading sources: " + error.message)
+        logger.error(chalk.red("Error loading sources: " + error.message))
         throw error
     }
 }
@@ -53,10 +54,10 @@ export async function markSourceCrawled(id) {
             [id]
         )
 
-        logger.info(`Marked source ${id} as crawled.`)
+        logger.info(chalk.gray(`Marked source ${id} as crawled.`))
 
     } catch (error) {
-        logger.error(`Failed to update source ${id}: ` + error.message)
+        logger.warn(chalk.yellow(`Failed to update source ${id}: ` + error.message))
         throw error
     }
     
@@ -136,6 +137,6 @@ export async function isInSources(url){
         }
 
     } catch(err) {
-        logger.warn(`could not show if data is in sources because of the following error: ${err}`)
+        logger.error(chalk.red(`could not show if data is in sources because of the following error: ${err}`))
     }
 }

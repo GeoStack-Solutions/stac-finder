@@ -11,24 +11,26 @@ const getQueryables = async (req, res) => {
         const schemaId = `${baseUrl}${pathNoQuery}`;
 
         // Get all data to fill enums
-        const platformResult = await db.query('SELECT DISTINCT UNNEST(platform_summary) AS platform FROM test.collections WHERE platform_summary IS NOT NULL ORDER BY platform');
+        const licenseResult = await db.query('SELECT DISTINCT license FROM stac.collections WHERE license IS NOT NULL ORDER BY license');
+        const licenseEnum = licenseResult.rows.map(row => row.license).filter(Boolean);
+
+        const platformResult = await db.query('SELECT DISTINCT UNNEST(platform_summary) AS platform FROM stac.collections WHERE platform_summary IS NOT NULL ORDER BY platform');
         const platformEnum = platformResult.rows.map(row => row.platform).filter(Boolean);
 
-        const processingLevelResult = await db.query('SELECT DISTINCT UNNEST(processing_level_summary) AS processing_level FROM test.collections WHERE processing_level_summary IS NOT NULL ORDER BY processing_level');
+        const processingLevelResult = await db.query('SELECT DISTINCT UNNEST(processing_level_summary) AS processing_level FROM stac.collections WHERE processing_level_summary IS NOT NULL ORDER BY processing_level');
         const processingLevelEnum = processingLevelResult.rows.map(row => row.processing_level).filter(Boolean);
         
-        const constellationResult = await db.query('SELECT DISTINCT UNNEST(constellation_summary) AS constellation FROM test.collections WHERE constellation_summary IS NOT NULL ORDER BY constellation');
+        const constellationResult = await db.query('SELECT DISTINCT UNNEST(constellation_summary) AS constellation FROM stac.collections WHERE constellation_summary IS NOT NULL ORDER BY constellation');
         const constellationEnum = constellationResult.rows.map(row => row.constellation).filter(Boolean);
 
-        const gsdResult = await db.query('SELECT DISTINCT jsonb_array_elements_text(gsd_summary) AS gsd FROM test.collections WHERE gsd_summary IS NOT NULL');
+        const gsdResult = await db.query('SELECT DISTINCT jsonb_array_elements_text(gsd_summary) AS gsd FROM stac.collections WHERE gsd_summary IS NOT NULL');
         const gsdEnum = gsdResult.rows
             .map(row => Number(row.gsd))
             .filter(val => !isNaN(val))
             .sort((a, b) => a - b);
 
-        const providerResult = await db.query(`SELECT DISTINCT provider->>'name' AS provider FROM test.collections, LATERAL jsonb_array_elements(providers) AS provider WHERE providers IS NOT NULL ORDER BY provider`);
+        const providerResult = await db.query(`SELECT DISTINCT provider->>'name' AS provider FROM stac.collections, LATERAL jsonb_array_elements(providers) AS provider WHERE providers IS NOT NULL ORDER BY provider`);
         const providerEnum = providerResult.rows.map(row => row.provider).filter(Boolean);
-
 
         const queryables = {
             $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -55,7 +57,8 @@ const getQueryables = async (req, res) => {
                 license: {
                     type: 'string',
                     title: 'License',
-                    description: 'License string (e.g. CC-BY-4.0)'
+                    description: 'License string (e.g. CC-BY-4.0)',
+                    enum: licenseEnum
                 },
                 doi: {
                     type: 'string',
@@ -110,6 +113,11 @@ const getQueryables = async (req, res) => {
                     title: 'Provider',
                     enum: providerEnum
                 },
+                keywords: {
+                    description: '{eo:keywords}',
+                    type: 'string',
+                    title: 'Keyword'
+                }
             }
         };
 
