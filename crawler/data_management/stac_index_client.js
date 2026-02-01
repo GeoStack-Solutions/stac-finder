@@ -2,7 +2,8 @@
 import { query } from "./db_client.js"
 import { logger } from "../logging/logger.js"
 import { checkDataType } from "ajv/dist/compile/validate/dataType.js"
-import chalk from "chalk"
+import chalk from "chalk";
+chalk.level = 3;
 
 /**
  * @function getSTACIndexData
