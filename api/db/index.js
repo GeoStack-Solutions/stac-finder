@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { logger } = require('../middleware/logger');
 require('dotenv').config();
 
 const pool = new Pool({
@@ -10,7 +11,13 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected DB error:', err);
+  logger.error('Unexpected database error - pool error', { 
+    error: err.message, 
+    stack: err.stack,
+    dbHost: process.env.DB_HOST,
+    dbPort: process.env.DB_PORT,
+    dbName: process.env.DB_NAME
+  });
   process.exit(-1);
 });
 

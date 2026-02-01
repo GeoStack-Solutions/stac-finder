@@ -42,11 +42,12 @@ describe('Pagination Utils', () => {
         test('should include last link if numberMatched is set', () => {
           const links = createPaginationLinks(
             '/collections',
-            { numberMatched: 35 },
+            {},
             10,
             10,
             10,
-            true
+            true,
+            35
           );
           const lastLink = links.find(l => l.rel === 'last');
           expect(lastLink).toBeDefined();

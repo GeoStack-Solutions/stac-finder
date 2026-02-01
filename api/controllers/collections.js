@@ -1,4 +1,5 @@
 const db = require('../db');
+const { logger } = require('../middleware/logger');
 const { parseSortby } = require('../utils/sorting');
 const { parsePaginationParams, createPaginationLinks } = require('../utils/pagination');
 const { parseTextSearch, parseDatetimeFilter, parseBboxFilter, parseCql2Filter } = require('../utils/filtering');
@@ -7,7 +8,7 @@ const { parseCql2 } = require('../utils/cql2parser');
 const { astToSql } = require('../utils/cql2sql');
 const queryableMap = require('../utils/queryableMap');
 
-const getCollections = async (req, res) => {
+const getCollections = async (req, res, next) => {
   try {
     let sql =
       'SELECT c.*, ' +
@@ -241,12 +242,12 @@ const getCollections = async (req, res) => {
     return res.json({ collections, links, numberReturned, numberMatched });
 
   } catch (err) {
-    console.error('Error fetching collections: ', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    logger.error('Error fetching collections', { error: err.message, stack: err.stack });
+    return next(err);
   }
 };
 
-const getCollectionById = async (req, res) => {
+const getCollectionById = async (req, res, next) => {
   const { id } = req.params;
   const baseUrl = `${req.protocol}://${req.get('host')}`;
 
@@ -371,8 +372,8 @@ const getCollectionById = async (req, res) => {
     res.json(collection);
 
   } catch (err) {
-    console.error('Error fetching collection by id: ', err);
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error('Error fetching collection by id', { error: err.message, stack: err.stack, collectionId: req.params.id });
+    return next(err);
   }
 };
 
