@@ -10,9 +10,7 @@ const queryableMap = require('../utils/queryableMap');
 const getCollections = async (req, res) => {
   try {
     let sql =
-      'SELECT c.id, c.title, c.description, c.keywords, c.license, ' +
-      'c.temporal_start, c.temporal_end, c.providers, ' +
-      'c.doi, c.platform_summary, c.constellation_summary, c.gsd_summary, c.processing_level_summary, ' + 
+      'SELECT c.*, ' +
       '(SELECT url FROM stac.sources WHERE id = c.source_id) AS source_url, ' +
       'ST_AsGeoJSON(c.spatial_extent)::json as spatial_extent ' +
       'FROM stac.collections c';
@@ -172,6 +170,14 @@ const getCollections = async (req, res) => {
         if (val.length > 0 && val[0] != null && val[0] !== '') summaries['processing:level'] = val;
       }
 
+      // Parse extensions
+      let extensions = [];
+      if (row.stac_extensions && typeof row.stac_extensions === 'string') {
+        extensions = row.stac_extensions.replace(/[{}]/g, '').split(',').filter(e => e);
+      } else if (Array.isArray(row.stac_extensions)) {
+        extensions = row.stac_extensions;
+      }
+
       return {
         stac_version: '1.0.0',
         type: 'Collection',
@@ -185,6 +191,7 @@ const getCollections = async (req, res) => {
         license: row.license,
         keywords: row.keywords,
         providers: row.providers && Array.isArray(row.providers) ? row.providers : [],
+        ...(extensions.length > 0 ? { extensions } : {}),
         ...(Object.keys(summaries).length > 0 ? { summaries } : {}),
         links: [
           { rel: 'self', 
@@ -293,6 +300,14 @@ const getCollectionById = async (req, res) => {
       if (val.length > 0 && val[0] != null && val[0] !== '') summaries['processing:level'] = val;
     }
 
+    // Parse extensions
+    let extensions = [];
+    if (row.stac_extensions && typeof row.stac_extensions === 'string') {
+      extensions = row.stac_extensions.replace(/[{}]/g, '').split(',').filter(e => e);
+    } else if (Array.isArray(row.stac_extensions)) {
+      extensions = row.stac_extensions;
+    }
+
     const collection = {
       stac_version: '1.0.0',
       type: 'Collection',
@@ -311,6 +326,7 @@ const getCollectionById = async (req, res) => {
       license: row.license,
       keywords: row.keywords,
       providers: row.providers && Array.isArray(row.providers) ? row.providers : [],
+      ...(extensions.length > 0 ? { extensions } : {}),
       ...(Object.keys(summaries).length > 0 ? { summaries } : {}),
       links: [
         {
