@@ -4,7 +4,7 @@ import { validateStacObject } from "../validation/json_validator.js"
 import { addToQueue } from "../queueManager/queue_manager.js"
 import { logger } from "../logging/logger.js"
 import { parseCollection } from "../handleCollections/CollectionParser.js"
-import { normalizeStacObject } from "../handleCollections/migrator.js"
+import { normalizeStacObject } from "./migrator.js"
 import chalk from "chalk";
 chalk.level = 3;
 
