@@ -47,3 +47,54 @@ test('Combined AND/OR with parentheses', () => {
   expect(where).toContain('OR');
   expect(params.length).toBe(3);
 });
+
+test('NOT wraps expression', () => {
+  const params = [];
+  const ast = parseCql2("NOT license = 'CC-BY-4.0'");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('NOT');
+  expect(params).toEqual(['CC-BY-4.0']);
+});
+
+test('AND has higher precedence than OR (or parentheses are preserved)', () => {
+  const params = [];
+  const ast = parseCql2("license = 'a' OR license = 'b' AND title LIKE '%S%'");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('OR');
+  expect(where).toContain('AND');
+  expect(params.length).toBe(3);
+});
+
+test('AND has higher precedence than OR (or parentheses are preserved)', () => {
+  const params = [];
+  const ast = parseCql2("license = 'a' OR license = 'b' AND title LIKE '%S%'");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('OR');
+  expect(where).toContain('AND');
+  expect(params.length).toBe(3);
+});
+
+test('not equals', () => {
+  const params = [];
+  const ast = parseCql2("license != 'proprietary'");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('license <> $1'); // oder != je nach Implementierung
+  expect(params).toEqual(['proprietary']);
+});
+
+test('unknown queryable throws', () => {
+  const params = [];
+  const ast = parseCql2("unknown_field = 'x'");
+  expect(() => astToSql(ast, queryableMap, params)).toThrow(/Unknown queryable/);
+});
+
+test('parameter order follows traversal', () => {
+  const params = [];
+  const ast = parseCql2("license = 'a' AND title LIKE '%b%' AND license = 'c'");
+  astToSql(ast, queryableMap, params);
+  expect(params).toEqual(['a', '%b%', 'c']);
+});

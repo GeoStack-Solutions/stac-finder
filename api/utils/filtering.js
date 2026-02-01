@@ -385,7 +385,7 @@ const cql2JsonToAst = (node) => {
     }
 
     // LIKE and comparisons: args: [ {property}, literal ]
-    const compareOps = ['=', '!=', '<', '>', 'LIKE'];
+    const compareOps = ['=', '!=', '<>', '<', '>', 'LIKE'];
     if (compareOps.includes(op)) {
       if (args.length !== 2) throw new Error(`${op} requires 2 args`);
       return {
