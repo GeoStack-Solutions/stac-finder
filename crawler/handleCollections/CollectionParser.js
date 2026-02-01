@@ -26,10 +26,10 @@ export function parseCollection(json, sourceId, crawledAt) {
         safeId = safeId.replace(/\//g, '_');
     }
 
-    // Replace spaces with underscores in the license
+    // Replace spaces with hyphen in the license
     let safeLicense = json.license;
     if (typeof safeLicense === 'string') {
-        safeLicense = safeLicense.replace(/ /g, '_');
+        safeLicense = safeLicense.replace(/ /g, '-');
     }
     
     // Return the structured metadata object
