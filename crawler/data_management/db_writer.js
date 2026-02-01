@@ -83,6 +83,7 @@ export async function upsertCollection(data) {
   const platform = toTextArray(data.platform);
   const constellation = toTextArray(data.constellation);
   const processing_level = toTextArray(data.processing_level);
+  const instrument = toTextArray(data.instrument);
 
   // Prepare JSONB columns: parse JSON strings and validate structure
   const providers = safeJSON(data.providers, []);
@@ -94,7 +95,7 @@ export async function upsertCollection(data) {
     INSERT INTO stac.collections (
       id, source_id, title, description, keywords, license,
       providers, doi, platform_summary, constellation_summary,
-      gsd_summary, processing_level_summary,
+      gsd_summary, processing_level_summary, instrument_summary,
       spatial_extent, temporal_start, temporal_end,
       last_crawled_timestamp, raw_json, stac_extensions
     )
@@ -104,6 +105,7 @@ export async function upsertCollection(data) {
       $8, $9, $10,
       $11::jsonb,
       $12,
+      $21,
       ST_MakeEnvelope($13, $14, $15, $16, 4326),
       $17, $18,
       NOW(),
@@ -127,7 +129,8 @@ export async function upsertCollection(data) {
       temporal_end = EXCLUDED.temporal_end,
       last_crawled_timestamp = NOW(),
       raw_json = EXCLUDED.raw_json,
-      stac_extensions = EXCLUDED.stac_extensions;
+      stac_extensions = EXCLUDED.stac_extensions,
+      instrument_summary = EXCLUDED.instrument_summary;
   `;
 
   const values = [
@@ -147,7 +150,8 @@ export async function upsertCollection(data) {
     data.temporal_start ?? null,
     data.temporal_end ?? null,
     JSON.stringify(raw_json),
-    stac_extensions
+    stac_extensions,
+    instrument
   ];
 
   await pool.query(query, values);
