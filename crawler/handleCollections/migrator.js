@@ -1,30 +1,37 @@
 import Migrate from '@radiantearth/stac-migrate';
-import chalk from "chalk"
 import { logger } from '../logging/logger.js';
+import chalk from "chalk";
+chalk.level = 3;
 
 /**
- * Normalizes STAC Collection to the newest Version (STAC 1.1).
- 
- * * @param {Object} rawData - raw JSON-Object.
- * @param {string} sourceUrl - Source URL (for Logs).
- * @returns {Promise<Object>} Object with migrated Collection and Version.
+ * Normalizes STAC Objects (Collection or Catalog) to the newest STAC Version.
+ * @param {Object} rawData - The raw JSON object.
+ * @param {string} sourceUrl - Source URL (for logging purposes).
+ * @returns {Promise<Object>} Object containing the migrated data and the new version.
  */
 export async function normalizeCollection(rawData, sourceUrl) {
     try {
        
-        //creating copy (Deep Clone), to avoid side effects.
-        const collectionCopy = JSON.parse(JSON.stringify(rawData));
+        // create a deep clone to prevent side effects
+        const objectCopy = JSON.parse(JSON.stringify(rawData));
 
-        // Parameter true = updateVersionNumber (updates 'stac_version' Field)
-        const migratedCollection = Migrate.collection(collectionCopy, true);
+        let migratedObject;
 
-        // reading version from the migrated object
-        const version = migratedCollection.stac_version;
+        // check type to apply the correct migration strategy
+        if (objectCopy.type === 'Catalog') {
+            // migrate as a Catalog
+            migratedObject = Migrate.catalog(objectCopy, true); 
 
-        logger.info(chalk.gray(`Migration succesful for ${sourceUrl}. Version: ${version}`));
+        } else {
+            // migrate as a Collection 
+            migratedObject = Migrate.collection(objectCopy, true);
+        }
+
+        // extracts the new STAC version from the migrated object
+        const version = migratedObject.stac_version;
 
         return {
-            collection: migratedCollection,
+            collection: migratedObject, // keep the key 'collection' for consistency, even if it is a catalog
             stacVersion: version
         };
 

@@ -7,7 +7,8 @@
 import { logger } from '../logging/logger.js'
 import { query } from '../data_management/db_client.js'
 import { validateSource } from '../validation/source_validator.js'
-import chalk from "chalk"
+import chalk from "chalk";
+chalk.level = 3;
 
 //functions
 

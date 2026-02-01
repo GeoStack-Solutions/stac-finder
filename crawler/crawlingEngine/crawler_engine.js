@@ -18,7 +18,9 @@ import { isInSources } from "../sourceManager/source_manager.js";
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
-import chalk from "chalk"
+import { normalizeCollection } from "../migrator.js";
+import chalk from "chalk";
+chalk.level = 3;
 
 // Resolve backup file path relative to this module
 const __filename = fileURLToPath(import.meta.url)

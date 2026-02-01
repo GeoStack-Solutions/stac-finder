@@ -23,11 +23,11 @@ We use the dependencies ajv, ajv-formats, dotenv, pg, pm2 and winston. To instal
 ## Controling the Crawling Process
 *Start the crawling process for the first time:*
 ```bash
-pm2 start STACFinderCrawler
+pm2 start STACCrawler.config.js
 ```
 *Stop the crawling process:*
 ```bash
-pm2 stop STACFinderCrawler
+pm2 stop STACCrawler.config.js
 ```
 *To get informations about the crawling process:*
 ```bash
