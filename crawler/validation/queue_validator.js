@@ -1,5 +1,6 @@
-import chalk from "chalk"
 import { logger } from "../logging/logger.js"
+import chalk from "chalk";
+chalk.level = 3;
 
 /**
  * @function validateQueueEntry

@@ -1,23 +1,33 @@
-// api/utils/queryableMap.js
 module.exports = {
-  id: { column: 'id', type: 'text' },                 
-  title: { column: 'title', type: 'text' },
-  description: { column: 'description', type: 'text' },
-  license: { column: 'license', type: 'text' },
-  doi: { column: 'doi', type: 'text' },               
+  id: { column: 'c.id', type: 'text' },
+  title: { column: 'c.title', type: 'text' },
+  description: { column: 'c.description', type: 'text' },
+  license: { column: 'c.license', type: 'text' },
+  doi: { column: 'c.doi', type: 'text' },
 
-  // Arrays
-  keywords: { column: 'keywords', type: 'text_array' },
-  platform_summary: { column: 'platform_summary', type: 'text_array' },
-  constellation_summary: { column: 'constellation_summary', type: 'text_array' },
-  processing_level_summary: { column: 'processing_level_summary', type: 'text_array' },
-  gsd_summary: { column: 'gsd_summary', type: 'text_array' }, // evtl anpassen
+  // Temporal
+  temporal_start: { column: 'c.temporal_start', type: 'timestamptz' },
+  temporal_end: { column: 'c.temporal_end', type: 'timestamptz' },
 
-  // Zeitspalten
-  temporal_start: { column: 'temporal_start', type: 'timestamptz' },
-  temporal_end: { column: 'temporal_end', type: 'timestamptz' },
+  // Spatial
+  spatial_extent: { column: 'c.spatial_extent', type: 'geometry' },
 
-  // <-- öffentliches Queryable, intern "virtuell":
+  // arrays (text[])
+  keywords: { column: 'c.keywords', type: 'text_array' },
+
+  platform: { column: 'c.platform_summary', type: 'text_array' },
+  platform_summary: { column: 'c.platform_summary', type: 'text_array' },
+
+  constellation: { column: 'c.constellation_summary', type: 'text_array' },
+  constellation_summary: { column: 'c.constellation_summary', type: 'text_array' },
+
+  processingLevel: { column: 'c.processing_level_summary', type: 'text_array' },
+  processing_level_summary: { column: 'c.processing_level_summary', type: 'text_array' },
+
+
+  // providers[*].name in JSONB
+  provider: { column: 'c.providers', type: 'jsonb_array', jsonb_field: 'name' },
+
+  // optional virtual field
   temporal_extent: { type: 'temporal_extent' },
 };
-  
