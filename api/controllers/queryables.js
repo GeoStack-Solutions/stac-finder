@@ -58,7 +58,8 @@ const getQueryables = async (req, res) => {
                     type: 'string',
                     title: 'License',
                     description: 'License string (e.g. CC-BY-4.0)',
-                    enum: licenseEnum
+                    enum: licenseEnum,
+                    'x-ogc-queryable-operators': ['eq', 'neq']
                 },
                 doi: {
                     type: 'string',
@@ -84,37 +85,42 @@ const getQueryables = async (req, res) => {
                     format: 'geometry-any'
                 },
                 platform: {
-                    description: "{eo:platform}",
+                    description: "Unique name of the specific platform to which the instrument is attached",
                     title: "Platform",
                     type: "string",
-                    enum: platformEnum
+                    enum: platformEnum,
+                    'x-ogc-queryable-operators': ['eq', 'neq']
                 },
                 processingLevel: {
-                    description: "{eo:processingLevel}",
+                    description: "Processing level of the data (e.g., L1, L2, L3)",
                     title: "Processing level",
                     type: "string",
-                    enum: processingLevelEnum
+                    enum: processingLevelEnum,
+                    'x-ogc-queryable-operators': ['eq', 'neq']
                 },
                 constellation: {
-                    description: "{eo:constellation}",
+                    description: "Name of the constellation to which the platform belongs",
                     title: "Constellation",
                     type: "string",
-                    enum: constellationEnum
+                    enum: constellationEnum,
+                    'x-ogc-queryable-operators': ['eq', 'neq']
                 },
                 gsd: {
-                    description: "{eo:gsd}",
+                    description: "Ground Sample Distance in meters",
                     title: "GSD",
                     type: "number",
-                    enum: gsdEnum
+                    enum: gsdEnum,
+                    'x-ogc-queryable-operators': ['eq', 'neq', 'lt', 'lte', 'gt', 'gte']
                 },
                 provider: {
-                    description: '{eo:providerName}',
+                    description: 'Name of the organization or individual that provides the data',
                     type: 'string',
                     title: 'Provider',
-                    enum: providerEnum
+                    enum: providerEnum,
+                    'x-ogc-queryable-operators': ['eq', 'neq']
                 },
                 keywords: {
-                    description: '{eo:keywords}',
+                    description: 'Keywords or tags describing the collection',
                     type: 'string',
                     title: 'Keyword'
                 }
