@@ -5,7 +5,13 @@
 
 import pkg from "pg"
 const { Pool } = pkg
-import 'dotenv/config'
+
+import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: resolve(__dirname, '../../.env') })
 
 const pool = new Pool({
   host: process.env.DB_HOST,
