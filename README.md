@@ -86,15 +86,16 @@ ssh stac-finder@finder.stacindex.org
 Enter the given password for the server.
 Then, navigate to the folder "crawler\" and make sure that all dependencies are installed. You will find more information about this in the [Crawler Documentation](/docs/crawler/crawler-documentation.md). 
 
+**Controling the Crawler**
 *Start the crawling process:*
 ```bash
-pm2 start STACFinderCrawler
+pm2 start STACCrawler.config.js
 ```
 *Stop the crawling process:*
 ```bash
-pm2 stop STACFinderCrawler
+pm2 stop STACCrawler.config.js
 ```
-*Get informations about the crawling process:*
+*To get informations about the crawling process:*
 ```bash
 pm2 logs
 ```

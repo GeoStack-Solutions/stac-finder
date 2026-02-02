@@ -20,40 +20,56 @@ const RETRY_DELAY_MS = 2000; // Base backoff time
  * - returns parsed JSON on success
  */
 export async function fetchWithRetry(url, maxRetries = MAX_RETRIES) {
-    const TIMEOUT_MS = 15000; // 15s Timeout
+    //15 sec Timeout
+    const TIMEOUT_MS = 15000;
+    //repeat as often as the number of max Retries is set
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        //initialize AbortController
         const controller = new AbortController();
+        //set Timeout
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
         try {
+            //try to fetch the given url
             logger.info(chalk.gray(`Fetching ${url} (attempt ${attempt}/${maxRetries})`));
             const response = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
 
+            //check the response
             const status = response.status;
             if (response.ok) {
                 try {
+                    //return the fetched json
                     return await response.json();
                 } catch (parseError) {
                     throw new Error(`Failed to parse JSON: ${parseError.message}`);
                 }
             }
 
+            //For Gateway Time-out: don't try again, as this only takes time and will not work anyways
             if (status === 504) {
                 throw new Error(`Fatal Server Error ${status}: Gateway Time-out - Will not retry.`);
             }
 
+            //For 400 ... and 500 ... statuses (exept 429) also dont try again
             if (status >= 400 && status < 500 && status !== 429) {
                 throw new Error(`Fatal Client Error ${status}: ${response.statusText} - Will not retry.`);
             }
             throw new Error(`Request failed with status ${status}: ${response.statusText}`);
+
         } catch (error) {
             clearTimeout(timeoutId);
+
+            //for Abort Errors: dont try again, it will only waste time
             if (error.name === 'AbortError') {
                 throw new Error("Fatal: Timeout of 15s reached - Will not retry to save time.");
             }
+
+            //for fatal errors:
             if (error.message.includes("Fatal")) throw error;
             logger.warn(chalk.yellow(`Attempt ${attempt} failed for ${url}: ${error.message}`));
+
+            //if the max. number of retries is reached:
             if (attempt === maxRetries) throw new Error(`Failed after ${maxRetries} attempts: ${error.message}`);
             const delay = RETRY_DELAY_MS * attempt;
             logger.info(chalk.gray(`Waiting ${delay}ms before next retry...`));

@@ -10,9 +10,11 @@ import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
+//Load env. variables
 const __dirname = dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: resolve(__dirname, '../../.env') })
 
+//Initialize PostgreSQL connection pool with database configuration
 const pool = new Pool({
   host: process.env.DB_HOST || process.env.CRAWLER_DB_HOST,
   port: process.env.DB_PORT || process.env.CRAWLER_DB_PORT,
@@ -21,6 +23,7 @@ const pool = new Pool({
   database: process.env.DB_NAME || process.env.CRAWLER_DB_NAME
 });
 
+// Handle unexpected database errors
 pool.on('error', (err) => {
   console.error('Unexpected DB error:', err);
   process.exit(-1);

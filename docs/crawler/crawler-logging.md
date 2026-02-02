@@ -1,5 +1,5 @@
 # Logging
-Details about the crawling process will be displayed in the terminal, when you open the logs as described above.
+Details about the crawling process will be displayed in the terminal, when you open the logs as described in the [Crawler Documentation](./crawler-documentation.md).
 
 ## There are three diffrent types of informations:
 

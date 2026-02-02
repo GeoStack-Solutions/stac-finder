@@ -19,8 +19,7 @@ try {
   // start crawling process
   startCrawler()
 } catch(err) {
-  // if there is a error
-  // save not uploaded data
+  // if there is a error, save not uploaded data
   saveInBackup()
 
   // log the error
