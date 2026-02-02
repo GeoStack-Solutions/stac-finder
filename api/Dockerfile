@@ -1,22 +1,17 @@
 FROM node:22
 
-# Set the /app directory as working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy app code from our local folder into the docker /app working directory
-COPY package*.json ./api/
-
-# Install app dependicies
-WORKDIR /app/api
+# Copy package files and install dependencies
+COPY package*.json ./
 RUN npm install
 
 # Copy project files
-WORKDIR /app
 COPY . .
 
 # Expose app on given port
 EXPOSE 4000
 
 # Start app
-WORKDIR /app/api
 CMD ["npm", "start"]

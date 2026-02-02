@@ -1,21 +1,6 @@
 # STAC API Component
 
-This folder contains the modular implementation of the STAC-compliant API. It provides RESTful endpoints for accessing geospatial collections and items, following the [STAC API specification](https://github.com/radiantearth/stac-api-spec).
-
-## Project Structure
-
-```
-api/ 
-├── controllers/          # Business logic for each route
-├── db/                   # PostgreSQL connection and query helpers  
-├── middleware/           # Logging, error handling, etc. 
-├── routes/               # Express routers for each endpoint 
-├── tests/                # Unit and integration tests
-├── utils/                # Helper functions and utilities
-├── .env                  # Environment variables 
-├── app.js                # Main Express app entry point 
-└── package.json          # Dependencies and scripts
-```
+This folder contains the modular implementation of the STAC-compliant API. It provides RESTful endpoints for accessing STAC (SpatioTemporal  Asset Catalogs) collections, following the [STAC API specification](https://github.com/radiantearth/stac-api-spec).
 
 ## Quick Start
 
@@ -39,6 +24,7 @@ The API provides the following STAC-compliant endpoints:
 - **`GET /collections`** - List all collections (with filtering, sorting, pagination)
 - **`GET /collections/{id}`** - Get collection by ID
 - **`GET /collections/queryables`** - List queryable fields for collections
+- **`GET /collections/sortables`** - List sortable fields for collections
 - **`GET /openapi.json`** - OpenAPI 3.0 specification
 - **`GET /health`** - Health check endpoint
 
@@ -47,8 +33,10 @@ For detailed API documentation, see:
 - [Health Endpoint](../docs/api/health.md)
 - [Query Parameters](../docs/api/query-param/)
 - [Queryables](../docs/api/queryables.md/)
+- [Sortables](../docs/api/sortables.md/)
 - [Validation](../docs/api/validation.md)
 - [Logging](../docs/api/logging.md)
+- [Rate Limiting](../docs/api/rate-limiting.md)
 
 ## Development Guidelines
 
@@ -64,9 +52,6 @@ For detailed API documentation, see:
 ```bash
 # Run all tests
 npm test
-
-# Run with coverage
-npm run test:coverage
 ```
 
 Tests are organized in `tests/unit/` and `tests/integration/`. Integration tests require a running PostgreSQL database.

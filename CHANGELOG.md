@@ -16,6 +16,7 @@ First stable release of STACFinder - A central platform for searching and explor
 - Collections endpoint (`GET /collections`) - List all STAC collections and supports sorting, filtering and pagination
 - Collection detail endpoint (`GET /collections/{id}`) - Retrieve metadata from individual collections
 - Queryables endpoint (`GET /collections/queryables`) - List queryable fields
+- Sortables endpoint (`GET /collections/sortables`) - List sortable fields
 - OpenAPI specification endpoint (`GET /openapi.json`)
 - Health check endpoint (`GET /health`)
 
@@ -34,6 +35,7 @@ First stable release of STACFinder - A central platform for searching and explor
 - SQL injection protection through parameterized queries
 - Input validation for all endpoints
 - Error handling middleware
+- Rate limiting middleware to protect API against abuse (100 requests per IP per 15 minutes)
 
 **Logging & Monitoring**
 - Request/response logging with Morgan

@@ -44,6 +44,7 @@ The response lists all filterable properties, their data types, and—where appl
 | `constellation` | string | Satellite constellation (array-backed) | `constellation = 'Sentinel'` | Dynamic (DB) |
 | `keywords` | string | Keyword tag (array-backed) | `keywords = 'Atmosphere'` | |
 | `provider` | string | Data provider name (JSONB-backed) | `provider = 'ESA'` | Dynamic (DB) |
+| `gsd` | number | Ground Sample Distance in meters (JSONB-array-backed) | `gsd >= 10` | Dynamic (DB) |
 | `temporal_start` | string (date-time) | Start of temporal extent | `temporal_start >= '2020-01-01T00:00:00Z'` | – |
 | `temporal_end` | string (date-time) | End of temporal extent | `temporal_end <= '2022-12-31T23:59:59Z'` | – |
 
@@ -84,7 +85,38 @@ Collections may still contain additional providers.
 
 This behavior is intentional and reflects the fact that collections can have multiple providers.
 
-### Spatial Filtering
+### GSD Filtering Semantics
+
+The `gsd` (Ground Sample Distance) queryable is backed by the JSONB column `gsd_summary`.  
+This column contains an array of heterogeneous values:
+- **Plain numbers:** `10`, `20`, `30`
+- **Objects with range:** `{"minimum": 10, "maximum": 15}`
+
+**Supported Operators:**
+- `=`, `!=`, `<`, `<=`, `>`, `>=` — Comparison operators
+- `IN (...)` — Match any of the given values
+
+**Semantics:**
+```
+gsd = 10
+```
+Matches collections where at least one GSD value equals 10 (either as plain number or within a {minimum, maximum} range).
+
+```
+gsd >= 10 AND gsd <= 30
+```
+Matches collections with at least one GSD value in the range [10, 30].
+
+```
+gsd IN (10, 20, 30)
+```
+Matches collections with at least one GSD value matching 10, 20, or 30.
+
+**Implementation Note:**  
+The backend uses PostgreSQL's `jsonb_array_elements` with a `CASE` expression to handle both plain numbers and objects transparently.
+
+### Spatial 
+- `gsd`Filtering
 
 Spatial filtering is supported via the standard `bbox` query parameter on `/collections`.  
 The `spatial_extent` geometry is **not** filtered via CQL2.
@@ -115,6 +147,7 @@ The following fields expose dynamic enum values derived from the database:
 - `processingLevel`
 - `constellation`
 - `provider`
+- `gsd`
 
 This ensures:
 - The UI always presents valid filter options

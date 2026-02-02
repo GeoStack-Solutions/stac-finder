@@ -23,6 +23,7 @@ const safeJSON = (v, fallback) => {
  * @returns {Promise<number>} Internal source ID for FK references
  */
 export async function upsertSource(source) {
+  //insert the data into the sources db
   const query = `
     INSERT INTO stac.sources (url, title, type, last_crawled_timestamp)
     VALUES ($1, $2, $3, NOW())
@@ -35,6 +36,8 @@ export async function upsertSource(source) {
   `;
   const values = [source.url, source.title, source.type];
   const res = await pool.query(query, values);
+
+  //return the number of inserted rows
   return res.rows[0].id;
 }
 

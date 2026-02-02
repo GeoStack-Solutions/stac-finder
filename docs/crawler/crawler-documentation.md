@@ -4,11 +4,7 @@ This guide explains how to use the STAC Finder Crawler.
 
 The crawler runs on our STACFinder Server
 
-TODO: Docker start beschreiben
-
 ---
-
-TODO: Falls die Ordnerstruktur geändert wird, müssen wir die Pfade anpassen.
 
 ## How to access the crawler via our server
 To controll the crawler, open your terminal and get a connection to the server by typing:
@@ -20,8 +16,8 @@ Enter the given password for the server and navigate to the folder "crawler\".
 ## Installations
 We use the dependencies ajv, ajv-formats, dotenv, pg, pm2 and winston. To install these, navigate to the path "crawler\" and type "npm install" into the terminal.
 
-## Controling the Crawling Process
-*Start the crawling process for the first time:*
+## Controling the Crawler
+*Start the crawling process:*
 ```bash
 pm2 start STACCrawler.config.js
 ```
@@ -34,19 +30,19 @@ pm2 stop STACCrawler.config.js
 pm2 logs
 ```
 ## Logging
-More Informations about Logs
-[Logging Documentation](./crawler-logging)
+More Informations about Logs:
+- [Logging Documentation](./crawler-logging.md)
 
 ## Data Management
-More Informations about the Data Management
-[Data Management](./crawler-data-management)
-[Database Documentation](../database/)
+More Informations about the Data Management:
+- [Data Management](./crawler-data-management.md)
+- [Database Documentation](../database/)
 
 ## How does the crawler work?
 
-The StartCrawler function controlls the crawling process. If the crawling process is interrupted, the remaining data in the urlData-Object is saved in a backup file to prevent data loss.
+The Crawler is started via an entrypoint that starts the main funktion, that controlls the crawling process. It also includes a funktion that saves any unuploaded data in a bakcup file, if the the crawling process is interrupted, to prevent data loss.
 
-Here is how the StartCrawler function works:
+Here is a brief overview of how the crawler works:
 
     If a backup file exists, the crawler validates the data and adds it to the queue if its valid.
     The backup file is then deleted.

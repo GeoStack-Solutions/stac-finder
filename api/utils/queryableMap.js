@@ -24,8 +24,9 @@ module.exports = {
   processingLevel: { column: 'c.processing_level_summary', type: 'text_array' },
   processing_level_summary: { column: 'c.processing_level_summary', type: 'text_array' },
 
-  // numeric
-  gsd: { column: 'c.gsd_summary', type: 'numeric' },
+  // numeric JSONB array
+  gsd: { column: 'c.gsd_summary', type: 'number_jsonb_array' },
+  gsd_summary: { column: 'c.gsd_summary', type: 'number_jsonb_array' },
 
   // providers[*].name in JSONB
   provider: { column: 'c.providers', type: 'jsonb_array', jsonb_field: 'name' },
