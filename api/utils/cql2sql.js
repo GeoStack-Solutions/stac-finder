@@ -61,6 +61,67 @@ function astToSql(ast, queryableMap, params) {
       throw new Error(`${node.op} not supported for ${node.left.name} (type ${q.type})`);
     }
 
+    // number_jsonb_array: numeric array stored as JSONB (e.g., gsd_summary)
+    // Handles both plain numbers and objects with {minimum, maximum}
+    // Supports: =, <>, <, <=, >, >=
+    if (q.type === 'number_jsonb_array') {
+      const value = Number(node.right.value);
+      if (isNaN(value)) {
+        throw new Error(`Invalid number value for ${node.left.name}`);
+      }
+
+      const p = nextParam(value);
+      const jsonArr = `COALESCE(${col}, '[]'::jsonb)`;
+
+      // Map operators to SQL
+      const operatorMap = {
+        '=': '=',
+        '<>': '<>',
+        '<': '<',
+        '<=': '<=',
+        '>': '>',
+        '>=': '>='
+      };
+
+      const sqlOp = operatorMap[op];
+      if (!sqlOp) {
+        throw new Error(`${node.op} not supported for ${node.left.name} (type ${q.type})`);
+      }
+
+      // For != we use NOT EXISTS
+      if (op === '<>') {
+        return `
+          NOT EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(${jsonArr}) AS elem
+            WHERE (
+              CASE 
+                WHEN jsonb_typeof(elem) = 'number' THEN elem::text::numeric
+                WHEN jsonb_typeof(elem) = 'object' AND elem ? 'minimum' THEN (elem->>'minimum')::numeric
+                ELSE NULL
+              END
+            ) = ${p}
+          )
+        `.trim();
+      }
+
+      // For all other operators, check if at least one array element matches
+      // Handle both plain numbers and objects with minimum/maximum
+      return `
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(${jsonArr}) AS elem
+          WHERE (
+            CASE 
+              WHEN jsonb_typeof(elem) = 'number' THEN elem::text::numeric
+              WHEN jsonb_typeof(elem) = 'object' AND elem ? 'minimum' THEN (elem->>'minimum')::numeric
+              ELSE NULL
+            END
+          ) ${sqlOp} ${p}
+        )
+      `.trim();
+    }
+
 
 
     // scalar text
@@ -131,6 +192,33 @@ function astToSql(ast, queryableMap, params) {
           SELECT 1
           FROM jsonb_array_elements(${jsonArr}) AS elem
           WHERE elem->>'${field}' = ANY(${p}::text[])
+        )
+      `.trim();
+    }
+
+    // number_jsonb_array: IN operator for numeric JSONB arrays
+    // Handles both plain numbers and objects with {minimum, maximum}
+    if (q.type === 'number_jsonb_array') {
+      const numericValues = values.map(v => {
+        const num = Number(v);
+        if (isNaN(num)) throw new Error(`Invalid number value in IN clause for ${node.left.name}`);
+        return num;
+      });
+
+      const p = nextParam(numericValues);
+      const jsonArr = `COALESCE(${col}, '[]'::jsonb)`;
+
+      return `
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(${jsonArr}) AS elem
+          WHERE (
+            CASE 
+              WHEN jsonb_typeof(elem) = 'number' THEN elem::text::numeric
+              WHEN jsonb_typeof(elem) = 'object' AND elem ? 'minimum' THEN (elem->>'minimum')::numeric
+              ELSE NULL
+            END
+          ) = ANY(${p}::numeric[])
         )
       `.trim();
     }
