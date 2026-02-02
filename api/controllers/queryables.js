@@ -24,12 +24,6 @@ const getQueryables = async (req, res, next) => {
         const constellationResult = await db.query('SELECT DISTINCT UNNEST(constellation_summary) AS constellation FROM stac.collections WHERE constellation_summary IS NOT NULL ORDER BY constellation');
         const constellationEnum = constellationResult.rows.map(row => row.constellation).filter(Boolean);
 
-        const gsdResult = await db.query('SELECT DISTINCT jsonb_array_elements_text(gsd_summary) AS gsd FROM stac.collections WHERE gsd_summary IS NOT NULL');
-        const gsdEnum = gsdResult.rows
-            .map(row => Number(row.gsd))
-            .filter(val => !isNaN(val))
-            .sort((a, b) => a - b);
-
         const providerResult = await db.query(`SELECT DISTINCT provider->>'name' AS provider FROM stac.collections, LATERAL jsonb_array_elements(providers) AS provider WHERE providers IS NOT NULL ORDER BY provider`);
         const providerEnum = providerResult.rows.map(row => row.provider).filter(Boolean);
 
@@ -110,7 +104,6 @@ const getQueryables = async (req, res, next) => {
                     description: "Ground Sample Distance in meters",
                     title: "GSD",
                     type: "number",
-                    enum: gsdEnum,
                     'x-ogc-queryable-operators': ['eq', 'neq', 'lt', 'lte', 'gt', 'gte']
                 },
                 provider: {
