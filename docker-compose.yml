@@ -47,7 +47,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - VUE_APP_API_URL=http://api:4000 
+      - SB_stacFinderApiUrl=http://localhost:4000
     volumes: # delete volumes for production 
       - ./web-ui:/app 
       - /app/node_modules

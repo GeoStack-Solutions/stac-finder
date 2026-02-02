@@ -85,7 +85,7 @@ The current `docker-compose.yml` is already configured for development (no need 
     ports:
       - "8080:8080"
     environment:
-      - VUE_APP_API_URL=http://api:4000 
+      - SB_stacFinderApiUrl=http://localhost:4000
     volumes: # volumes required
       - ./web-ui:/app 
       - /app/node_modules
@@ -148,7 +148,7 @@ The current `docker-compose.yml` is configured for **Development**. For producti
    ports:
       - "8080:8080"
    environment:
-      - VUE_APP_API_URL=http://api:4000 
+      - SB_stacFinderApiUrl=http://localhost:4000
     # PRODUCTION: Remove volumes
     depends_on:
       - api
