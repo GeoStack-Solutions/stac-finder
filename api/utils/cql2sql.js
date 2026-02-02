@@ -106,16 +106,6 @@ function astToSql(ast, queryableMap, params) {
       return `${col} ${op} ${p}::timestamptz`;
     }
 
-    // numeric (gsd)
-    if (q.type === 'numeric') {
-      const value = Number(node.right.value);
-      if (Number.isNaN(value)) {
-        throw new Error(`Invalid numeric value for ${node.left.name}`);
-      }
-      const p = nextParam(value);
-      return `${col} ${op} ${p}::numeric`;
-    }
-
     throw new Error(`${node.op} not supported for ${node.left.name} (type ${q.type})`);
   };
 
