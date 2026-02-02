@@ -56,7 +56,7 @@ docker-compose down
 Accessible at (using ports from `.env`):
 - Frontend (Web-UI): `http://localhost:${WEB_UI_PORT}` (default: [http://localhost:8080](http://localhost:8080))
 - API Backend: `http://localhost:${API_PORT}` (default: [http://localhost:4000](http://localhost:4000))
-- pgAdmin (Database Management): [http://localhost:5050](http://localhost:5050)
+- pgAdmin (Database Management): `http://localhost:${PGADMIN_PORT}` (default: [http://localhost:5050](http://localhost:5050))
   - See [Database Access Guide](docs/database/database-access.md) for setup instructions
 
 ## API
