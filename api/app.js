@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
-const cors = require('cors');  
+const cors = require('cors');
+const fs = require('fs');
+const favicon = require('serve-favicon');
 const app = express();
 const landingPageRouter = require('./routes/landingPage');
 const conformanceRouter = require('./routes/conformance');
@@ -16,6 +18,12 @@ app.set('trust proxy', 1);
 
 // Rate Limiting Middleware
 app.use(rateLimiter);
+
+// Favicon
+const faviconPath = path.join(__dirname, 'public', 'assets', 'images', 'STACFinder_favicon.png');
+if (fs.existsSync(faviconPath)) {
+  app.use(favicon(faviconPath));
+}
 
 // Logging Middleware
 app.use(morganMiddleware);
