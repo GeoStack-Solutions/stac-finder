@@ -20,6 +20,7 @@
 ### Development & Operations
 - [Logging and Error Handling](api/logging.md)
 - [Validation](api/validation.md)
+- [Rate Limiting](api/rate-limiting.md)
 
 ## Crawler Documentation
 - [Crawler Documentation](./crawler/crawler-documentation.md)

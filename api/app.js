@@ -11,6 +11,13 @@ const collectionsRouter = require('./routes/collections');
 const healthRouter = require('./routes/health');
 const { morganMiddleware, requestLogger } = require('./middleware/logger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const rateLimiter = require('./middleware/rateLimiter');
+
+// Trust proxy - needed for rate limiting behind Docker/nginx
+app.set('trust proxy', 1);
+
+// Rate Limiting Middleware
+app.use(rateLimiter);
 
 // Favicon
 const faviconPath = path.join(__dirname, 'public', 'assets', 'images', 'STACFinder_favicon.png');
