@@ -88,3 +88,14 @@ test('parameter order follows traversal', () => {
   astToSql(ast, queryableMap, params);
   expect(params).toEqual(['a', '%b%', 'c']);
 });
+
+test('LIKE on keywords (text[]) uses unnest + ILIKE', () => {
+  const params = [];
+  const ast = parseCql2("keywords LIKE '%eo%'");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('unnest');
+  expect(where).toContain('ILIKE $1');
+  expect(params).toEqual(['%eo%']);
+});
