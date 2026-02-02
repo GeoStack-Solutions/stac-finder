@@ -40,7 +40,7 @@ services:
       - ./api:/app/api # delete for production 
       - /app/api/node_modules # delete for production 
       - ./docs:/app/docs # delete for production
-      - ./api/logs:/app/api/logs
+      - ./api/logs:/app/logs
     command: npm run dev # use npm start for production
 
   # Frontend STAC Browser 
