@@ -102,6 +102,25 @@ Details about the crawling process will then be shown in the terminal.
 
 **For more information:** [Crawler Documentation](/docs/crawler/crawler-documentation.md)
 
+## Web-UI (STAC Browser)
+
+The frontend is a customized [STAC Browser](https://github.com/radiantearth/stac-browser) with integrated STACFinder collection search.
+
+**Standard STAC Browser** allows browsing and searching within a single STAC catalog or API.
+
+**STACFinder Extension** enables **cross-catalog search** across all indexed STAC collections. The STACFinder API aggregates metadata from multiple catalogs, allowing users to discover and filter collections from different providers in one unified interface.
+
+**Key Features:**
+- Cross-catalog collection search (powered by STACFinder API)
+- Advanced filtering (free-text, temporal, spatial, CQL2 metadata)
+- Sorting and pagination
+- URL-based state for bookmarking and sharing
+- Seamless transition to native STAC catalog browsing
+
+Accessible at [http://localhost:8080](http://localhost:8080)
+
+**For detailed documentation:** [Web-UI Documentation](web-ui/docs/stacfinder.md)
+
 ## Working with Git Submodules
 
 A quick guide for managing the web-ui submodule in STACFinder:

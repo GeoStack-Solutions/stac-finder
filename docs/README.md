@@ -28,7 +28,8 @@
 
 ## Web-UI Documentation
 
-...
+- [STACFinder Collections Documentation](../web-ui/docs/stacfinder.md)
+- [STAC Browser README](../web-ui/README.md)
 
 ## Database Documentation
 - [Database Access](database/database-access.md)
