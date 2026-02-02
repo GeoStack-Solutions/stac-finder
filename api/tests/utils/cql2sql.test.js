@@ -89,6 +89,16 @@ test('parameter order follows traversal', () => {
   expect(params).toEqual(['a', '%b%', 'c']);
 });
 
+test('LIKE on keywords (text[]) uses unnest + ILIKE', () => {
+  const params = [];
+  const ast = parseCql2("keywords LIKE '%eo%'");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('unnest');
+  expect(where).toContain('ILIKE $1');
+  expect(params).toEqual(['%eo%']);
+  });
 // === GSD (number_jsonb_array) Tests ===
 
 test('gsd = (equals) uses EXISTS with CASE for number_jsonb_array', () => {
