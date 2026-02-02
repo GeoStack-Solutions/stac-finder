@@ -19,10 +19,22 @@ function tokenize(input) {
         tokens.push({ type: c, value: c }); i++; continue;
       }
   
-      // operators
+      // operators (check multi-char operators first!)
       if (c === '<' && input[i + 1] === '>') {
          tokens.push({ type: 'OP', value: '<>' });
          i += 2;
+        continue;
+      }
+
+      if (c === '<' && input[i + 1] === '=') {
+        tokens.push({ type: 'OP', value: '<=' });
+        i += 2;
+        continue;
+      }
+
+      if (c === '>' && input[i + 1] === '=') {
+        tokens.push({ type: 'OP', value: '>=' });
+        i += 2;
         continue;
       }
 
