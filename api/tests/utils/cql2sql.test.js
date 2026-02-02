@@ -88,3 +88,101 @@ test('parameter order follows traversal', () => {
   astToSql(ast, queryableMap, params);
   expect(params).toEqual(['a', '%b%', 'c']);
 });
+
+// === GSD (number_jsonb_array) Tests ===
+
+test('gsd = (equals) uses EXISTS with CASE for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd = 10");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(where).toContain("jsonb_typeof(elem) = 'number'");
+  expect(where).toContain("elem ? 'minimum'");
+  expect(where).toContain('= $1');
+  expect(params).toEqual([10]);
+});
+
+test('gsd != (not equals) uses NOT EXISTS for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd <> 10");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('NOT EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(params).toEqual([10]);
+});
+
+test('gsd < (less than) uses EXISTS with CASE for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd < 20");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(where).toContain('< $1');
+  expect(params).toEqual([20]);
+});
+
+test('gsd <= (less than or equal) uses EXISTS with CASE for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd <= 20");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(where).toContain('<= $1');
+  expect(params).toEqual([20]);
+});
+
+test('gsd > (greater than) uses EXISTS with CASE for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd > 20");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(where).toContain('> $1');
+  expect(params).toEqual([20]);
+});
+
+test('gsd >= (greater than or equal) uses EXISTS with CASE for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd >= 20");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(where).toContain('>= $1');
+  expect(params).toEqual([20]);
+});
+
+test('gsd IN uses EXISTS with ANY for number_jsonb_array', () => {
+  const params = [];
+  const ast = parseCql2("gsd IN (10, 20, 30)");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('EXISTS');
+  expect(where).toContain('jsonb_array_elements');
+  expect(where).toContain('CASE');
+  expect(where).toContain('= ANY($1::numeric[])');
+  expect(params).toEqual([[10, 20, 30]]);
+});
+
+test('gsd combined with AND/OR', () => {
+  const params = [];
+  const ast = parseCql2("gsd >= 10 AND gsd <= 30");
+  const where = astToSql(ast, queryableMap, params);
+
+  expect(where).toContain('AND');
+  expect(where).toContain('>= $1');
+  expect(where).toContain('<= $2');
+  expect(params).toEqual([10, 30]);
+});
