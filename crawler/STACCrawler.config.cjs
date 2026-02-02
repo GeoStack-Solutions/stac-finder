@@ -1,4 +1,6 @@
 //starts the crawling process in a pm2 environment
+// - with coloured logs
+// - without autorestart
 
 module.exports = {
   apps: [{
