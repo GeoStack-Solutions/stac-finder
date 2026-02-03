@@ -6,6 +6,7 @@ STACFinder - A central platform for searching and exploring STAC (SpatioTemporal
 
 - **STAC API Collections Endpoint**: Browse all STAC collections
 - **PostgreSQL/PostGIS**: Spatial database for STAC metadata
+- **STAC Browser - Web UI**: Explore collections using the extended STAC Browser
 - **Docker Setup**: Easy deployment with Docker Compose
 - **Security**: SQL injection protection through input validation
 
@@ -109,16 +110,9 @@ The frontend is a customized [STAC Browser](https://github.com/radiantearth/stac
 
 **Standard STAC Browser** allows browsing and searching within a single STAC catalog or API.
 
-**STACFinder Extension** enables **cross-catalog search** across all indexed STAC collections. The STACFinder API aggregates metadata from multiple catalogs, allowing users to discover and filter collections from different providers in one unified interface.
+**STACFinder Extension** enables **cross-catalog search** across all indexed STAC collections. The STACFinder API aggregates metadata from multiple catalogs, allowing users to discover and filter collections from different sources in one unified interface.
 
-**Key Features:**
-- Cross-catalog collection search (powered by STACFinder API)
-- Advanced filtering (free-text, temporal, spatial, CQL2 metadata)
-- Sorting and pagination
-- URL-based state for bookmarking and sharing
-- Seamless transition to native STAC catalog browsing
-
-Accessible at [http://localhost:8080](http://localhost:8080)
+Accessible at [http://localhost:8080](http://localhost:8080) (default)
 
 **For detailed documentation:** [Web-UI Documentation](web-ui/docs/stacfinder.md)
 
