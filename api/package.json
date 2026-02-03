@@ -8,7 +8,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "validate": "node ./bin/validate.js"
+    "validate": "node ./bin/validate.js",
+    "load-test": "node load-tests/run-load-tests.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -36,6 +37,7 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "autocannon": "^7.15.0",
     "jest": "^30.2.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4"

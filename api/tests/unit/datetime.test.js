@@ -315,4 +315,323 @@ describe('parseDatetimeFilter', () => {
             expect(result.error.error).toBe('Invalid datetime');
         });
     });
+
+    // === Performance & Edge Cases ===
+    describe('Performance and Edge Cases', () => {
+        describe('Long Time Intervals (Multi-Decade)', () => {
+            test('should handle 50-year interval (1975-2025)', () => {
+                const startTime = performance.now();
+                const result = parseDatetimeFilter('1975-01-01T00:00:00Z/2025-12-31T23:59:59Z');
+                const duration = performance.now() - startTime;
+
+                expect(result.error).toBeNull();
+                expect(result.whereClause).toBe('(temporal_start <= $1 AND (temporal_end >= $2 OR temporal_end IS NULL))');
+                expect(result.params).toEqual(['2025-12-31T23:59:59Z', '1975-01-01T00:00:00Z']);
+                
+                // Performance assertion: should complete in under 5ms
+                expect(duration).toBeLessThan(5);
+            });
+
+            test('should handle century-long interval (1900-2000)', () => {
+                const result = parseDatetimeFilter('1900-01-01T00:00:00Z/2000-12-31T23:59:59Z');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle multi-century interval (1800-2100)', () => {
+                const result = parseDatetimeFilter('1800-01-01/2100-12-31');
+                expect(result.error).toBeNull();
+                expect(result.params).toEqual(['2100-12-31', '1800-01-01']);
+            });
+
+            test('should handle satellite era (1957-present)', () => {
+                const result = parseDatetimeFilter('1957-10-04T00:00:00Z/..');
+                expect(result.error).toBeNull();
+                expect(result.whereClause).toBe('(temporal_end >= $1 OR temporal_end IS NULL)');
+            });
+
+            test('should handle Landsat program era (1972-present)', () => {
+                const result = parseDatetimeFilter('1972-07-23/..');
+                expect(result.error).toBeNull();
+                expect(result.params).toEqual(['1972-07-23']);
+            });
+
+            test('should handle Sentinel program (2014-2050)', () => {
+                const result = parseDatetimeFilter('2014-04-03/2050-12-31');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle historical archives (pre-1900)', () => {
+                const result = parseDatetimeFilter('../1900-01-01T00:00:00Z');
+                expect(result.error).toBeNull();
+                expect(result.whereClause).toBe('(temporal_start <= $1)');
+            });
+
+            test('should handle future projections (2025-2100)', () => {
+                const result = parseDatetimeFilter('2025-01-01/2100-12-31');
+                expect(result.error).toBeNull();
+                expect(result.params).toEqual(['2100-12-31', '2025-01-01']);
+            });
+        });
+
+        describe('Very Short Time Intervals', () => {
+            test('should handle single day', () => {
+                const result = parseDatetimeFilter('2020-06-15/2020-06-15');
+                expect(result.error).toBeDefined(); // Same start/end not allowed
+            });
+
+            test('should handle single hour interval', () => {
+                const result = parseDatetimeFilter('2020-06-15T12:00:00Z/2020-06-15T13:00:00Z');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle single minute interval', () => {
+                const result = parseDatetimeFilter('2020-06-15T12:00:00Z/2020-06-15T12:01:00Z');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle sub-second precision', () => {
+                const result = parseDatetimeFilter('2020-06-15T12:00:00.000Z/2020-06-15T12:00:00.999Z');
+                expect(result.error).toBeNull();
+                expect(result.params[0]).toBe('2020-06-15T12:00:00.999Z');
+                expect(result.params[1]).toBe('2020-06-15T12:00:00.000Z');
+            });
+        });
+
+        describe('Edge Cases at Time Boundaries', () => {
+            test('should handle leap year (February 29)', () => {
+                const result = parseDatetimeFilter('2020-02-29');
+                expect(result.error).toBeNull();
+                expect(result.params).toEqual(['2020-02-29', '2020-02-29']);
+            });
+
+            test('should handle year boundary (New Year)', () => {
+                const result = parseDatetimeFilter('2019-12-31T23:59:59Z/2020-01-01T00:00:01Z');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle century boundary (Y2K)', () => {
+                const result = parseDatetimeFilter('1999-12-31T23:59:59Z/2000-01-01T00:00:01Z');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle millennium boundary', () => {
+                const result = parseDatetimeFilter('999-12-31/1000-01-01');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle daylight saving time transitions', () => {
+                // Europe Spring DST transition 2024
+                const result = parseDatetimeFilter('2024-03-31T00:00:00Z/2024-03-31T04:00:00Z');
+                expect(result.error).toBeNull();
+            });
+        });
+
+        describe('Performance Benchmarks', () => {
+            test('should parse single timestamp within 2ms', () => {
+                const iterations = 100;
+                const startTime = performance.now();
+                
+                for (let i = 0; i < iterations; i++) {
+                    parseDatetimeFilter('2020-06-15T00:00:00Z');
+                }
+                
+                const duration = (performance.now() - startTime) / iterations;
+                expect(duration).toBeLessThan(2);
+            });
+
+            test('should parse interval within 3ms', () => {
+                const iterations = 100;
+                const startTime = performance.now();
+                
+                for (let i = 0; i < iterations; i++) {
+                    parseDatetimeFilter('2020-01-01T00:00:00Z/2020-12-31T23:59:59Z');
+                }
+                
+                const duration = (performance.now() - startTime) / iterations;
+                expect(duration).toBeLessThan(3);
+            });
+
+            test('should parse long interval within 5ms', () => {
+                const iterations = 100;
+                const startTime = performance.now();
+                
+                for (let i = 0; i < iterations; i++) {
+                    parseDatetimeFilter('1900-01-01T00:00:00Z/2100-12-31T23:59:59Z');
+                }
+                
+                const duration = (performance.now() - startTime) / iterations;
+                expect(duration).toBeLessThan(5);
+            });
+
+            test('should handle rapid successive calls without degradation', () => {
+                const durations = [];
+                
+                for (let i = 0; i < 10; i++) {
+                    const start = performance.now();
+                    parseDatetimeFilter(`202${i}-01-01/202${i}-12-31`);
+                    durations.push(performance.now() - start);
+                }
+                
+                // Last call should not be significantly slower than first
+                const firstCall = durations[0];
+                const lastCall = durations[durations.length - 1];
+                expect(lastCall).toBeLessThan(firstCall * 2);
+            });
+        });
+
+        describe('Memory and Resource Usage', () => {
+            test('should not create excessive parameters for single timestamp', () => {
+                const result = parseDatetimeFilter('2020-06-15T00:00:00Z');
+                expect(result.params.length).toBe(2); // Expected: same timestamp twice
+            });
+
+            test('should create exactly 2 parameters for closed interval', () => {
+                const result = parseDatetimeFilter('2020-01-01/2020-12-31');
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should create exactly 1 parameter for open intervals', () => {
+                const result1 = parseDatetimeFilter('2020-01-01/..');
+                expect(result1.params.length).toBe(1);
+
+                const result2 = parseDatetimeFilter('../2020-12-31');
+                expect(result2.params.length).toBe(1);
+            });
+
+            test('whereClause should be reasonable length', () => {
+                const result = parseDatetimeFilter('2020-01-01T00:00:00Z/2020-12-31T23:59:59Z');
+                expect(result.whereClause.length).toBeLessThan(200);
+            });
+
+            test('should handle ISO 8601 strings without memory leaks', () => {
+                const before = process.memoryUsage().heapUsed;
+                
+                for (let i = 0; i < 1000; i++) {
+                    parseDatetimeFilter(`2020-${String(i % 12 + 1).padStart(2, '0')}-01`);
+                }
+                
+                const after = process.memoryUsage().heapUsed;
+                const increase = after - before;
+                
+                // Should not leak significant memory (< 1MB for 1000 iterations)
+                expect(increase).toBeLessThan(1024 * 1024);
+            });
+        });
+
+        describe('Real-World Archive Scenarios', () => {
+            test('should handle Copernicus Sentinel complete archive', () => {
+                const result = parseDatetimeFilter('2014-04-03T00:00:00Z/..');
+                expect(result.error).toBeNull();
+                expect(result.params).toEqual(['2014-04-03T00:00:00Z']);
+            });
+
+            test('should handle Landsat complete archive', () => {
+                const result = parseDatetimeFilter('1972-07-23/..');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle MODIS archive (2000-present)', () => {
+                const result = parseDatetimeFilter('2000-02-24/..');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle historical climate data (1850-2024)', () => {
+                const result = parseDatetimeFilter('1850-01-01/2024-12-31');
+                expect(result.error).toBeNull();
+                expect(result.params.length).toBe(2);
+            });
+
+            test('should handle single mission duration (Sentinel-1A)', () => {
+                const result = parseDatetimeFilter('2014-04-03/2030-12-31');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle seasonal query (summer 2020)', () => {
+                const result = parseDatetimeFilter('2020-06-01/2020-08-31');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle monthly archive query', () => {
+                const result = parseDatetimeFilter('2020-06-01/2020-06-30');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle multi-year climate study (2000-2020)', () => {
+                const result = parseDatetimeFilter('2000-01-01/2020-12-31');
+                expect(result.error).toBeNull();
+            });
+        });
+
+        describe('Extreme Date Values', () => {
+            test('should handle very old dates (year 1000)', () => {
+                const result = parseDatetimeFilter('1000-01-01/1100-12-31');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle far future dates (year 2500)', () => {
+                const result = parseDatetimeFilter('2500-01-01/2600-12-31');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle single year in distant past', () => {
+                const result = parseDatetimeFilter('../0500-12-31');
+                expect(result.error).toBeNull();
+            });
+
+            test('should handle open-ended future query', () => {
+                const result = parseDatetimeFilter('2024-01-01/..');
+                expect(result.error).toBeNull();
+            });
+        });
+
+        describe('Combined Stress Tests', () => {
+            test('should handle multiple successive long-interval queries', () => {
+                const results = [];
+                const intervals = [
+                    '1900-01-01/2000-12-31',
+                    '1950-01-01/2050-12-31',
+                    '1800-01-01/2100-12-31',
+                    '1975-06-15/2025-06-15',
+                    '1850-01-01/2150-12-31'
+                ];
+
+                const startTime = performance.now();
+                
+                intervals.forEach(interval => {
+                    results.push(parseDatetimeFilter(interval));
+                });
+                
+                const duration = performance.now() - startTime;
+
+                results.forEach(result => {
+                    expect(result.error).toBeNull();
+                });
+                
+                // All 5 queries should complete in under 25ms total
+                expect(duration).toBeLessThan(25);
+            });
+
+            test('should maintain consistency across different date formats', () => {
+                const formats = [
+                    '2020',
+                    '2020-06',
+                    '2020-06-15',
+                    '2020-06-15T00:00:00Z',
+                    '2020-06-15T12:30:45.123Z'
+                ];
+
+                formats.forEach(format => {
+                    const result = parseDatetimeFilter(format);
+                    expect(result.error).toBeNull();
+                    expect(result.params.length).toBeGreaterThan(0);
+                });
+            });
+        });
+    });
 });

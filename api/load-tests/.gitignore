@@ -1,0 +1,6 @@
+# Load test results
+results/
+*.json
+
+# Keep directory structure
+!results/.gitkeep

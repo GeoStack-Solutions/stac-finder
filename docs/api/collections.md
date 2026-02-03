@@ -367,6 +367,223 @@ These endpoints follow the STAC API Specification:
 - Includes summaries of item properties
 - Provides standard link relations (self, root, parent)
 
+---
+
+## Optional Fields Handling
+
+### Overview
+
+Collections in STAC have required and optional fields. This section documents how the API handles collections with missing or incomplete optional fields.
+
+### Optional Fields
+
+The following fields are **optional** in STAC Collections and may be missing, null, or empty:
+
+- `keywords` - Array of keywords for discovery
+- `sci:doi` (in summaries) - Digital Object Identifier
+- `summaries` - Summary statistics (entire object may be absent)
+- `description` - May be empty string or whitespace-only
+- `providers` - Provider information array
+- Other extension properties (eo:*, sar:*, etc.)
+
+### Required Fields
+
+These fields are **always present** per STAC specification:
+
+- `id` - Unique collection identifier
+- `title` - Human-readable collection title
+- `extent` - Spatial and temporal extent
+- `license` - Collection license
+- `stac_version` - STAC version (for GET /collections/{id})
+- `type` - Always "Collection" (for GET /collections/{id})
+- `links` - Array of links
+
+### API Behavior with Missing Fields
+
+#### Free-Text Search (`q` parameter)
+
+The API searches across multiple fields. When fields are missing:
+
+**Behavior:**
+- Searches in: `title`, `description`, `keywords` (if present)
+- **Missing `description`**: Search only checks `title` and `keywords`
+- **Missing `keywords`**: Search only checks `title` and `description`
+- Collections with partial matches are still returned
+
+**Example:**
+```bash
+# Returns collections matching "landsat" even if description or keywords are missing
+curl "http://localhost:4000/collections?q=landsat"
+```
+
+**Real-world data:**
+- All collections have `keywords` field
+- 28 collections have missing or empty `summaries`
+- 50 collections have no DOI in summaries
+
+#### CQL2 Filtering
+
+When filtering on optional fields that are missing:
+
+**Behavior:**
+- **`IS NULL` checks**: Works correctly, returns collections where field is missing
+- **`IS NOT NULL` checks**: Excludes collections with missing field
+- **`LIKE` or `=` on missing fields**: Collections without the field are excluded from results
+- **No errors thrown**: API gracefully handles missing fields in queries
+
+**Examples:**
+```bash
+# Find collections with DOI
+curl 'http://localhost:4000/collections?filter-lang=cql2-json&filter={"op":"isNull","args":[{"property":"sci:doi"}],"negate":true}'
+
+# Find collections with keywords containing "eo"
+curl 'http://localhost:4000/collections?filter-lang=cql2-json&filter={"op":"in","args":[{"property":"keywords"},["eo","satellite"]]}'
+```
+
+**Note:** CQL2-text implementation may return `400 Bad Request` if parser is not fully implemented. Use CQL2-json for better compatibility.
+
+#### Sorting
+
+Sorting works reliably on required fields:
+
+**Behavior:**
+- **Sorting by `title`**: Always works (required field)
+- **Sorting by optional fields**: May have inconsistent behavior
+- Collections are never excluded from results due to missing sort fields
+
+**Example:**
+```bash
+# Reliable - title is required
+curl "http://localhost:4000/collections?sortby=title"
+
+# May have issues - license may vary
+curl "http://localhost:4000/collections?sortby=license"
+```
+
+#### Pagination
+
+Pagination works transparently with missing fields:
+
+**Behavior:**
+- Collections with missing fields are included in pagination
+- Filter consistency maintained across pages
+- Token-based pagination handles varying field presence
+
+**Example:**
+```bash
+# First page
+curl "http://localhost:4000/collections?limit=10"
+
+# Next page (includes collections with missing optional fields)
+curl "http://localhost:4000/collections?limit=10&token=xyz"
+```
+
+### Edge Cases
+
+#### Collections with Only Required Fields
+
+**Behavior:** Collections with minimal STAC fields are fully supported:
+
+```json
+{
+  "id": "minimal-collection",
+  "title": "Minimal Collection",
+  "description": "",
+  "extent": {
+    "spatial": {"bbox": [[-180, -90, 180, 90]]},
+    "temporal": {"interval": [[null, null]]}
+  },
+  "license": "proprietary",
+  "links": [...]
+}
+```
+
+Such collections:
+-  Are returned in listings
+-  Can be filtered by required fields
+-  Are included in pagination
+-  Never cause null pointer exceptions
+
+#### Null vs Undefined vs Empty Array
+
+**Handling:**
+- `null` - Field exists but has no value
+- `undefined` - Field is completely absent from JSON
+- `[]` - Empty array (for keywords, providers, etc.)
+
+**API treats all three equivalently:**
+- Free-text search skips the field
+- CQL2 filters treat as "field not present"
+- No errors or exceptions thrown
+
+### Client Implementation Recommendations
+
+When consuming this API, handle optional fields gracefully:
+
+```javascript
+//  Safe access patterns
+const keywords = collection.keywords || [];
+const doi = collection.summaries?.doi?.[0] || 'N/A';
+const description = collection.description?.trim() || 'No description';
+
+//  Check before accessing
+if (collection.sci && collection.sci.doi) {
+  displayDOI(collection.sci.doi);
+}
+
+//  Use optional chaining
+const platformName = collection.summaries?.platform?.[0];
+```
+
+**Best Practices:**
+- Always use optional chaining (`?.`) for nested optional fields
+- Provide defaults for missing fields in UI displays
+- Don't assume summaries object exists
+- Check array length before accessing indices
+- Handle empty strings as "missing" for description
+
+### Data Quality Insights
+
+Based on real database analysis:
+
+| Field | Status | Collections Affected |
+|-------|--------|---------------------|
+| `keywords` | Always present | 0 missing |
+| `sci:doi` | Optional | ~50 without DOI |
+| `summaries` | Optional | ~28 missing/empty |
+| `description` | Sometimes empty | ~15 empty strings |
+| Multiple optional fields | Varies | ~59 with 2+ missing |
+
+### Error Handling
+
+The API **never throws null pointer exceptions** for missing optional fields:
+
+-  Returns `200 OK` with filtered results
+-  Returns empty arrays when no matches
+-  Returns proper `400` for malformed queries (not missing fields)
+-  Never returns `500` due to missing optional fields
+
+**Example successful response with many missing fields:**
+```json
+{
+  "collections": [
+    {
+      "id": "123",
+      "title": "Collection with minimal fields",
+      "description": "",
+      "extent": {...},
+      "license": "proprietary",
+      "links": [...]
+    }
+  ],
+  "links": [...],
+  "numberReturned": 1,
+  "numberMatched": 1
+}
+```
+
+---
+
 ## Related Documentation
 
 - [Free-text search](filtering/free-text-search.md) - free-text search filtering details
