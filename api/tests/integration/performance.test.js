@@ -1,14 +1,15 @@
 /**
  * Performance and Stress Tests for STAC API Collection Search
+*
+* Tests extensive spatial and temporal filter queries
+* Goal: Ensure that the API remains stable and performs well with large queries
+*
+* DIFFERENCE FROM collections.test.js:
+* - collections.test.js tests FUNCTIONALITY (does it work?)
+ * - performance.test.js tests PERFORMANCE (how fast/efficient is it?)
  * 
- * Tests umfangreiche räumliche und zeitliche Filterabfragen
- * Ziel: Sicherstellen, dass die API bei großen Abfragen stabil und performant bleibt
- * 
- * UNTERSCHIED ZU collections.test.js:
- * - collections.test.js testet FUNKTIONALITÄT (funktioniert es?)
- * - performance.test.js testet PERFORMANCE (wie schnell/effizient ist es?)
- * 
- * Fokus hier: Extreme Szenarien, Zeit-/Memory-Messungen, Stress-Tests
+ * Focus here: Extreme scenarios, time/memory measurements, stress tests
+
  */
 
 const request = require('supertest');
@@ -17,13 +18,12 @@ const db = require('../../db');
 
 describe('Performance Tests - Extreme Scale Queries', () => {
     
-    // Cleanup nach allen Tests
     afterAll(async () => {
         await db.pool.end();
     }, 10000); // 10s timeout for cleanup
     
-    // Performance-Schwellwerte
-    const RESPONSE_TIME_THRESHOLD = 5000; // 5 Sekunden
+    // Performance-thresholds
+    const RESPONSE_TIME_THRESHOLD = 5000; // 5 seconds
     const MEMORY_THRESHOLD = 100 * 1024 * 1024; // 100 MB
 
     describe('Extreme Bounding Box Queries (Performance)', () => {

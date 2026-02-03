@@ -3,40 +3,40 @@
 ## 1. Setup
 
 ```bash
-# Stelle sicher, dass die API läuft
+# Make sure the API is running
 cd /Users/luis/repository/stac-finder
 docker-compose up api
 
-# In einem neuen Terminal
+# In a new terminal
 cd api
-npm install  # Falls noch nicht gemacht
+npm install  # If not already done
 ```
 
-## 2. Load Test ausführen
+## 2. Run Load Test
 
 ```bash
 npm run load-test
 ```
 
-Das dauert ca. **5-6 Minuten** (9 Szenarien × 30 Sekunden + 5 Sekunden Pause zwischen Tests).
+This takes approximately **5-6 minutes** (9 scenarios × 30 seconds + 5 seconds pause between tests).
 
-## 3. Was wird getestet?
+## 3. What is Being Tested?
 
-1. **Baseline** - Einfache Collection-Abfrage
-2. **Pagination** - Große Seitengröße (50 Items)
-3. **Free Text Search** - Suche nach "sentinel"
-4. **BBox Filter** - Räumliche Filterung
-5. **Datetime Filter** - Zeitliche Filterung
-6. **Combined Filters** - Mehrere Filter kombiniert
-7. **CQL2 Filter** - Komplexe JSON-Filter
-8. **Sorting** - Sortierung nach Titel
-9. **Combined Query** - Alle Parameter zusammen
+1. **Baseline** - Simple collection query
+2. **Pagination** - Large page size (50 items)
+3. **Free Text Search** - Search for "sentinel"
+4. **BBox Filter** - Spatial filtering
+5. **Datetime Filter** - Temporal filtering
+6. **Combined Filters** - Multiple filters combined
+7. **CQL2 Filter** - Complex JSON filters
+8. **Sorting** - Sort by title
+9. **Combined Query** - All parameters together
 
-## 4. Ergebnisse verstehen
+## 4. Understanding Results
 
-### Während des Tests
+### During the Test
 
-Du siehst eine Fortschrittsanzeige:
+You will see a progress indicator:
 ```
 Running 30s test @ http://localhost:4000/collections
 10 connections
@@ -48,9 +48,9 @@ Running 30s test @ http://localhost:4000/collections
 └─────────┴──────┴──────┴───────┴──────┴─────────┴─────────┴───────┘
 ```
 
-### Nach dem Test
+### After the Test
 
-Eine Zusammenfassung aller Szenarien:
+A summary of all scenarios:
 ```
 ┌─────────────────────────────────────────────┬──────────┬───────────┬──────────┬─────────┐
 │ Scenario                                    │ Req/sec  │ Latency   │ Errors   │ p99     │
@@ -60,65 +60,65 @@ Eine Zusammenfassung aller Szenarien:
 └─────────────────────────────────────────────┴──────────┴───────────┴──────────┴─────────┘
 ```
 
-## 5. Bewertung
+## 5. Evaluation
 
-### Gut ✅
+### Good 
 - Latency < 300ms
 - p99 < 1000ms
-- Keine Errors
+- No errors
 - Requests/sec > 50
 
-### Verbesserungsbedarf ⚠️
-- Latency > 500ms → Datenbank-Optimierung nötig
-- Errors > 0 → API oder DB Probleme
-- p99 > 2000ms → Einzelne Queries zu langsam
+### Needs Improvement 
+- Latency > 500ms → Database optimization needed
+- Errors > 0 → API or DB problems
+- p99 > 2000ms → Individual queries too slow
 
-## 6. Ergebnisse speichern
+## 6. Saving Results
 
-Die Ergebnisse werden automatisch gespeichert in:
+Results are automatically saved to:
 ```
 api/load-tests/results/load-test-2026-02-03T12-30-45.json
 ```
 
-## 7. Für Dokumentation
+## 7. For Documentation
 
-Kopiere die wichtigsten Ergebnisse in `docs/api/performance.md`:
+Copy the most important results to `docs/api/performance.md`:
 - Throughput (Requests/sec)
-- Latency (Durchschnitt und p99)
-- Identifizierte Engpässe
-- Empfehlungen
+- Latency (Average and p99)
+- Identified bottlenecks
+- Recommendations
 
-## Häufige Probleme
+## Common Issues
 
-### API nicht erreichbar
+### API Not Reachable
 ```
-❌ Cannot reach API at http://localhost:4000
+ Cannot reach API at http://localhost:4000
 ```
-**Lösung**: `docker-compose up api` oder `npm start`
+**Solution**: `docker-compose up api` or `npm start`
 
-### Zu viele Fehler
+### Too Many Errors
 ```
-⚠️  Most Errors: Combined Query
+  Most Errors: Combined Query
 Total Errors: 150
 ```
-**Lösung**: 
-- DB Connection Pool überprüfen
-- Logs checken: `docker-compose logs api`
-- Evtl. weniger Connections (CONNECTIONS=5 in run-load-tests.js)
+**Solution**: 
+- Check DB connection pool settings
+- Check logs: `docker-compose logs api`
+- Possibly reduce connections (CONNECTIONS=5 in run-load-tests.js)
 
-### Sehr langsam
+### Very Slow
 ```
 Average Latency: 1250.45ms
 ```
-**Lösung**:
-- Datenbank-Indizes prüfen
-- Queries optimieren
-- Caching implementieren
+**Solution**:
+- Check database indexes
+- Optimize queries
+- Implement caching
 
-## Nächste Schritte
+## Next Steps
 
-1. **Baseline festlegen** - Erster Test = Ausgangswert
-2. **Engpässe identifizieren** - Welche Endpoints sind langsam?
-3. **Optimieren** - Indizes, Caching, Query-Optimierung
-4. **Re-testen** - Verbesserung messen
-5. **Dokumentieren** - Ergebnisse in performance.md
+1. **Establish Baseline** - First test = baseline value
+2. **Identify Bottlenecks** - Which endpoints are slow?
+3. **Optimize** - Indexes, caching, query optimization
+4. **Re-test** - Measure improvements
+5. **Document** - Results in performance.md
