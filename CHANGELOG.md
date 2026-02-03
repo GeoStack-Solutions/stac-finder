@@ -80,4 +80,44 @@ First stable release of STACFinder - A central platform for searching and explor
 
 #### Web-UI Features
 
-...
+**STACFinder Search Interface**
+- Dedicated `/stacfinder` route for cross-catalog collection search
+- `StacFinderSearch.vue` - Main search view with filter panel, results grid and pagination
+- `CollectionFilterPanel.vue` - Comprehensive filter form with search, datetime, bbox and metadata filters
+- `CollectionMetadataFilter.vue` - Dynamic CQL2 filter builder driven by queryables from API
+
+**Search & Filtering**
+- Free-text search across collection titles, descriptions, keywords
+- Temporal filtering with date picker (supports open-ended ranges)
+- Spatial filtering with interactive map and bbox selection
+- Spatial relation options: intersects, contains, within, overlaps
+- Advanced metadata filtering with CQL2 expressions
+- Dynamic queryables loaded from API with type-specific operators
+
+**Results & Navigation**
+- Collection results displayed as cards with metadata preview
+- Pagination with next/prev navigation
+- Sorting by title, description, temporal extent (ascending/descending)
+- Click-through to full collection details in standard STAC Browser view
+- Navigation buttons for Home and STACFinder search
+
+**State Management**
+- Vuex store (`stacFinderState`) preserves filters, sorting and results
+- Search state persists when navigating to collection details and back
+- No page reload required when returning to search results
+
+**API Integration**
+- `CollectionApiAdapter.js` - API client for query building and requests
+- `collectionCql.js` - CQL2-Text query builder for filter expressions
+- Dynamic fetching and caching of queryables and sortables from API
+- Robust error handling with user-friendly error messages
+
+**Configuration & Deployment**
+- Environment variable support via dotenv (`SB_stacFinderApiUrl`)
+- Docker configuration with dynamic API URL injection
+- Responsive layout for header, footer and search components
+
+**Developer Experience**
+- Comprehensive documentation (`docs/stacfinder.md`)
+- Modular Vue component architecture for easy maintenance
+- Git submodule integration with main STACFinder repository
