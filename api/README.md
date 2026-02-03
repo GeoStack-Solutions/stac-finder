@@ -36,6 +36,7 @@ For detailed API documentation, see:
 - [Sortables](../docs/api/sortables.md/)
 - [Validation](../docs/api/validation.md)
 - [Logging](../docs/api/logging.md)
+- [Rate Limiting](../docs/api/rate-limiting.md)
 
 ## Development Guidelines
 

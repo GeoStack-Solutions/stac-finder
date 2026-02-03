@@ -37,10 +37,11 @@ services:
       - DB_PASS=${API_DB_PASS}
       - DB_NAME=${API_DB_NAME}
     volumes:
-      - ./api:/app/api # delete for production 
-      - /app/api/node_modules # delete for production 
+      - ./api:/app # delete for production 
+      - /app/node_modules # delete for production 
       - ./docs:/app/docs # delete for production
-      - ./api/logs:/app/api/logs
+      - ./api/logs:/app/logs
+      - ./public:/app/public # favicon and static assets
     command: npm run dev # use npm start for production
 
   # Frontend STAC Browser 

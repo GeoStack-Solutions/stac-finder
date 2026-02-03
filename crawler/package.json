@@ -8,5 +8,8 @@
     "pm2": "^6.0.14",
     "winston": "^3.18.3"
   },
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
 }
