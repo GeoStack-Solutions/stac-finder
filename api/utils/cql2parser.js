@@ -7,7 +7,7 @@ function tokenize(input) {
   
     const isWs = (c) => /\s/.test(c);
     const isIdentStart = (c) => /[A-Za-z_]/.test(c);
-    const isIdent = (c) => /[A-Za-z0-9_]/.test(c);
+    const isIdent = (c) => /[A-Za-z0-9_:]/.test(c);
   
     while (i < input.length) {
       const c = input[i];
@@ -63,20 +63,21 @@ function tokenize(input) {
       }
 
   
-      // string literal (single quotes)
-      if (c === "'") {
+      // string literal (single or double quotes)
+      if (c === "'" || c === '"') {
+        const quote = c;
         let j = i + 1;
         let s = '';
         while (j < input.length) {
-          if (input[j] === "'" && input[j + 1] === "'") { // escaped ''
-            s += "'";
+          if (input[j] === quote && input[j + 1] === quote) { // escaped quotes
+            s += quote;
             j += 2;
             continue;
           }
-          if (input[j] === "'") break;
+          if (input[j] === quote) break;
           s += input[j++];
         }
-        if (j >= input.length || input[j] !== "'") throw new Error('Unterminated string literal');
+        if (j >= input.length || input[j] !== quote) throw new Error('Unterminated string literal');
         tokens.push({ type: 'STRING', value: s });
         i = j + 1;
         continue;
