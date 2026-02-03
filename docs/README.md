@@ -23,9 +23,9 @@
 - [Rate Limiting](api/rate-limiting.md)
 
 ## Crawler Documentation
-- [Crawler Documentation](./crawler/crawler-documentation.md)
-- [Data Management](./crawler/DataManagement)
-- [Logging](./crawler/crawler-logging)
+- [Crawler Documentation](crawler/crawler-documentation.md)
+- [Data Management](crawler/crawler-data-management)
+- [Logging](crawler/crawler-logging)
 
 ## Web-UI Documentation
 
