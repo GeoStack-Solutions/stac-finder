@@ -33,6 +33,8 @@
 - [STAC Browser README](../web-ui/README.md)
 
 ## Database Documentation
-- [Database Access](database/database-access.md)
+- [Access](database/database-access.md)
+- [Schema](database/schema.md)
+- [Indexes](database/indexes.md)
 - [Webserver Setup](database/webserver-setup.md)
 
