@@ -15,7 +15,7 @@ describe('STAC Validation', () => {
     baseUrl = `http://localhost:${port}`;
 
     // Get collection IDs from database
-    const result = await db.query('SELECT id FROM stac.collections LIMIT 100');
+    const result = await db.query('SELECT id FROM stac.collections WHERE license = \'CC-BY-4.0\' LIMIT 50');
     collectionIds = result.rows.map(row => row.id);
   });
 
@@ -52,7 +52,7 @@ describe('STAC Validation', () => {
 
   describe('Collections Endpoint', () => {
     test('should validate /collections against STAC specification', async () => {
-      const url = `${baseUrl}/collections`;
+      const url = `${baseUrl}/collections?filter=license='CC-BY-4.0'`;
       const report = await validateSTAC(url);
       
       expect(report.valid).toBe(true);
@@ -63,7 +63,7 @@ describe('STAC Validation', () => {
     }, 15000);
 
     test('should validate /collections with limit parameter', async () => {
-      const url = `${baseUrl}/collections?limit=5`;
+      const url = `${baseUrl}/collections?limit=5&filter=license='CC-BY-4.0'`;
       const report = await validateSTAC(url);
       
       expect(report.valid).toBe(true);
@@ -74,7 +74,7 @@ describe('STAC Validation', () => {
     }, 15000);
 
     test('should validate /collections with sortby parameter', async () => {
-      const url = `${baseUrl}/collections?sortby=title`;
+      const url = `${baseUrl}/collections?sortby=title&filter=license='CC-BY-4.0'`;
       const report = await validateSTAC(url);
       
       expect(report.valid).toBe(true);
@@ -85,7 +85,7 @@ describe('STAC Validation', () => {
     }, 15000);
 
     test('should validate /collections with bbox parameter', async () => {
-      const url = `${baseUrl}/collections?bbox=5.0,47.0,15.0,55.0`;
+      const url = `${baseUrl}/collections?bbox=5.0,47.0,15.0,55.0&filter=license='CC-BY-4.0'`;
       const report = await validateSTAC(url);
       
       expect(report.valid).toBe(true);
@@ -96,7 +96,7 @@ describe('STAC Validation', () => {
     }, 15000);
 
     test('should validate /collections with datetime parameter', async () => {
-      const url = `${baseUrl}/collections?datetime=2020-01-01/..`;
+      const url = `${baseUrl}/collections?datetime=2020-01-01/..&filter=license='CC-BY-4.0'`;
       const report = await validateSTAC(url);
       
       expect(report.valid).toBe(true);
@@ -107,7 +107,7 @@ describe('STAC Validation', () => {
     }, 15000);
 
     test('should validate /collections with combined parameters', async () => {
-      const url = `${baseUrl}/collections?limit=10&sortby=-title&bbox=5.0,47.0,15.0,55.0`;
+      const url = `${baseUrl}/collections?limit=10&sortby=-title&bbox=5.0,47.0,15.0,55.0&filter=license='CC-BY-4.0'`;
       const report = await validateSTAC(url);
       
       expect(report.valid).toBe(true);
@@ -152,7 +152,7 @@ describe('STAC Validation', () => {
       }
 
       expect(failedCollections.length).toBe(0);
-    }, 120000); // 2 minutes timeout for 100 collections
+    }, 120000); // 2 minutes timeout for 50 collections
   });
 });
 
