@@ -1,5 +1,37 @@
 # STAC Finder Documentation
 
+## Overview
+
+STACFinder is a central platform for searching and exploring STAC (SpatioTemporal Asset Catalogs) collections from multiple sources. It consists of three main components:
+
+### Architecture
+
+```
+┌─────────────┐      HTTP        ┌──────────────┐     SQL (read)    ┌──────────────┐
+│   Web-UI    │ ◄──────────────► │   STAC API   │ ◄────────────────►│  PostgreSQL  │
+│ STAC Browser│                  │   (Node.js)  │                   │   + PostGIS  │
+└─────────────┘                  └──────────────┘                   └──────────────┘
+                                                                            ▲
+                                                                            │
+                                                                            │ SQL (write)
+                                                                            │
+                                                                     ┌──────────────┐
+                                                                     │   Crawler    │
+                                                                     │(Data Collect)│
+                                                                     └──────────────┘
+```
+
+**Components:**
+
+1. **API** - RESTful STAC API providing collection search with filtering, sorting, pagination and CQL2 support
+2. **Crawler** - Automated service collecting STAC collection metadata from various sources
+3. **Web-UI** - Frontend interface based on STAC Browser with cross-catalog search capabilities
+4. **Database** - PostgreSQL/PostGIS storing indexed collection metadata
+
+This documentation covers the technical details of each component, API endpoints, query capabilities, and operational aspects.
+
+---
+
 ## API Documentation
 
 ### API Endpoints
@@ -23,9 +55,9 @@
 - [Rate Limiting](api/rate-limiting.md)
 
 ## Crawler Documentation
-- [Crawler Documentation](./crawler/crawler-documentation.md)
-- [Data Management](./crawler/DataManagement)
-- [Logging](./crawler/crawler-logging)
+- [Crawler Documentation](crawler/crawler-documentation.md)
+- [Data Management](crawler/crawler-data-management.md)
+- [Logging](crawler/crawler-logging.md)
 
 ## Web-UI Documentation
 
@@ -33,6 +65,7 @@
 - [STAC Browser README](../web-ui/README.md)
 
 ## Database Documentation
-- [Database Access](database/database-access.md)
-- [Webserver Setup](database/webserver-setup.md)
+- [Access](database/database-access.md)
+- [Schema](database/schema.md)
+- [Indexes](database/indexes.md)
 
