@@ -36,5 +36,4 @@
 - [Access](database/database-access.md)
 - [Schema](database/schema.md)
 - [Indexes](database/indexes.md)
-- [Webserver Setup](database/webserver-setup.md)
 
