@@ -1,4 +1,3 @@
 [submodule "web-ui"]
 	path = web-ui
 	url = https://github.com/HannahS-T/stac-browser-stacfinder
-	branch = dev
