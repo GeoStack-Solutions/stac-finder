@@ -8,9 +8,9 @@ router.get('/', async (req, res) => {
   const timestamp = new Date().toISOString();
 
   const target = {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME
+    host: process.env.DB_HOST || process.env.API_DB_HOST,
+    port: process.env.DB_PORT || process.env.API_DB_PORT,
+    database: process.env.DB_NAME || process.env.API_DB_NAME
   };
 
   try {
