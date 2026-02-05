@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1](https://github.com/GeoStack-Solutions/stac-finder/releases/tag/v1.0.1) - 2026-02-05
+
+### Bug Fixes
+
+**API**
+- Fixed OpenAPI endpoint returning 404 error - Corrected relative path in `openapi.js` controller from `../../docs/api/openapi.json` to `../docs/api/openapi.json`
+
+### Deployment
+
+STACFinder is now available online:
+- Web UI: https://finder.stacindex.org
+- API: https://finder.stacindex.org/api
+
 ## [v1.0.0](https://github.com/GeoStack-Solutions/stac-finder/releases/tag/v1.0.0) - 2026-02-03
 
 ### Initial Release

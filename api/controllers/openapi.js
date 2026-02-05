@@ -4,7 +4,7 @@ const { logger } = require('../middleware/logger');
 
 const getOpenAPI = async (req, res, next) => {
     try {
-        const openapiPath = path.join(__dirname, '../../docs/api/openapi.json');
+        const openapiPath = path.join(__dirname, '../docs/api/openapi.json');
         
         // Check if file exists
         if (!fs.existsSync(openapiPath)) {
