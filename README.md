@@ -2,6 +2,11 @@
 
 STACFinder - A central platform for searching and exploring STAC (SpatioTemporal Asset Catalogs) collections
 
+## In Web
+
+- **Web-UI**: https://finder.stacindex.org
+- **API**: https://finder.stacindex.org/api
+
 ## Features
 
 - **STAC API Collections Endpoint**: Browse all STAC collections
