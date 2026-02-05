@@ -13,6 +13,17 @@ ssh stac-finder@finder.stacindex.org
 ```
 Enter the given password for the server and navigate to the folder "crawler\". 
 
+Create a central `.env` file in the project root with your configuration:  
+```bash
+# Copy example file
+cp .env.example .env
+
+# Then edit .env and configure:
+# - API_PORT: Port for the API service (default: 4000)
+# - WEB_UI_PORT: Port for the Web UI (default: 8080)
+# - DB credentials for your PostgreSQL database
+```
+
 ## Installations
 We use the dependencies ajv, ajv-formats, dotenv, pg, pm2 and winston. To install these, navigate to the path "crawler\" and type "npm install" into the terminal.
 
